@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
 import { canvasTexture } from '@engine/world/textures.js';
 import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
+import { buildFloorPlants } from './plants.js';
 
 const L = {
   wood: { tex: 'wood_panel' }, floor: { tex: 'greige_floor' },
@@ -127,16 +128,24 @@ export function furnish({ layer }) {
   B.box(11.66, 0, 2, 0.45, 3.4, 3.6, L.books);             // 东墙通顶书架
   foot(11.66, 2, 0.55, 3.7);
   for (let i = 0; i < 7; i++) B.box(11.58, 0.4 + i * 0.42, 2, 0.22, 0.04, 3.4, L.wood); // 隔板
-  B.at(7, 0, 2, 0, () => {                                  // 书桌 + 显示器（画面朝南）
-    B.box(0, 1.05, 0, 3, 0.08, 1.1, L.panel);
-    for (const lx of [-1.3, 1.3]) B.box(lx, 0, 0, 0.12, 1.05, 0.12, L.steel);
-    B.box(0, 1.13, -0.3, 2.4, 0.05, 0.12, L.steel);
-    plane(2.0, 1.15, paint(500, 290, monitorPaint), 0, 2.0, -0.5, 0, true);
+  // 书房：长桌 + 多屏拼接（3×2 显示器墙，画面朝南）+ 多台主机 + 椅。
+  B.at(7, 0, 1.5, 0, () => {
+    B.box(0, 1.05, 0, 5.4, 0.08, 1.3, L.panel);              // 桌面
+    for (const lx of [-2.5, 2.5]) B.box(lx, 0, 0, 0.12, 1.05, 0.12, L.steel);
+    const cols = 3, rows = 2, mw = 1.45, mh = 0.82, gp = 0.1;   // 多屏拼接
+    const span = cols * mw + (cols - 1) * gp, x0 = -span / 2 + mw / 2, baseY = 1.5;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const mx = x0 + c * (mw + gp), my = baseY + r * (mh + gp);
+      B.box(mx, my, -0.42, mw + 0.07, mh + 0.07, 0.06, L.paint(0x0d0f12));   // 显示器边框
+      plane(mw, mh, paint(360, 210, monitorPaint), mx, my, -0.39, 0, true);    // 屏幕（代码雨）
+    }
+    B.box(0, 1.18, -0.5, span + 0.3, 0.06, 0.12, L.steel);                   // 支架横梁
   });
-  foot(7, 2, 3.1, 1.2);
-  B.box(7, 0, 3.55, 1.6, 0.7, 0.5, L.paint(0x2a2f33));      // 主机柜
-  B.box(7, 0.7, 3.55, 1.5, 0.04, 0.5, L.steel); foot(7, 3.55, 1.7, 0.6);
-  ergonomicChair(7, 2.7, 0); foot(7, 2.7, 0.85, 0.85);      // 椅面朝北对着桌子
+  foot(7, 1.5, 5.5, 1.4);
+  for (const tx of [-2.4, 0, 2.4]) { B.box(tx, 0.5, 1.2, 0.5, 1.0, 0.9, L.paint(0x2a2f33)); B.box(tx, 0.04, 1.2, 0.54, 0.04, 0.94, L.steel); }
+  foot(7, 1.2, 5.4, 1.5);
+  ergonomicChair(7, 3.0, 0); foot(7, 3.0, 0.85, 0.85);      // 椅面朝北，对着桌子与多屏
+  bake('study', 7, 2.4, 1.5, 1.8, 7, [0, -1, 0]);
 
   // ===== 一层：厨房（东南，x[2,12] z[4,10]）=====
   B.box(11.35, 0, 7, 1.1, 0.9, 5, L.steel);                 // 东墙操作台
@@ -197,16 +206,8 @@ export function furnish({ layer }) {
     B.box(wx + (wx < 0 ? 0.9 : -0.9), ly + 1.1, -8.9, 0.5, 1.0, 0.04, L.paint(0xbababa));
     foot(wx, -9.2, 2.6, 0.7, 1);
   }
-  // 室内绿植（陶盆 + 叶丛）。
-  const plant = (x, z, y = 0) => {
-    B.box(x, y, z, 0.34, 0.4, 0.34, L.paint(0xb5651d));
-    B.box(x, y + 0.4, z, 0.3, 0.04, 0.3, L.paint(0x8a4f15));
-    B.at(x, y + 0.44, z, 0, () => {
-      B.box(0, 0.5, 0, 0.7, 1.0, 0.7, L.paint(0x3f7d3f));
-      B.box(0, 1.1, 0, 0.5, 0.7, 0.5, L.paint(0x4f9350));
-    });
-  };
-  plant(-11.4, 0.6); plant(2.5, 4.6); plant(-11, -7.6, ly); plant(11, -7.6, ly);
+  // 精致花草：琴叶榕 / 龟背竹 / 天堂鸟 / 金钱树（plants.js，叶片带分叉几何）。
+  buildFloorPlants(B, foot);
   B.box(-2.62, ly, -6.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 二层卫生间：马桶（西墙）
   B.box(-2.3, ly + 0.5, -6.5, 0.75, 0.45, 0.85, L.paint(0xf4f6f7)); foot(-2.4, -6.5, 1, 1.6, 1);
   B.box(1.9, ly, -8.8, 1.7, 0.12, 1.7, L.paint(0x9cc4d6));   // 淋浴房（东北角）
@@ -235,6 +236,13 @@ export function furnish({ layer }) {
   umbrella(-8, -6); umbrella(8, 6);
   for (const [x, z] of [[-10, 8], [10, -8]]) { B.box(x, dy, z, 0.3, 0.06, 0.3, L.steel); B.box(x, dy + 0.06, z, 0.22, 0.5, 0.22, L.light(0xffe4ba)); }
   bake('deck-lights', 0, dy + 0.5, 0, 4, 18, [0, -1, 0]);
+
+  // ===== 室外：入户门两侧壁灯（夜间随灯光烘焙自动点亮，照亮门廊）=====
+  for (const lx of [-2.75, 2.75]) {
+    B.box(lx, 2.15, HOUSE.z1 + 0.56, 0.34, 0.24, 0.12, L.steel);                       // 灯座
+    B.box(lx, 2.15, HOUSE.z1 + 0.62, 0.24, 0.15, 0.05, L.light(0xffdca8));              // 灯罩（自发光）
+    bake('porch-lamp', lx, 2.15, HOUSE.z1 + 0.8, 1.7, 6.5, [0, 1, 0]);
+  }
 
   // ===== 室外：泳池（岛南草坪，紧邻房屋西侧）=====
   // 池壁低处的夜灯：夜间映亮水面（光照由方块/水面着色器计算）。

@@ -2,14 +2,23 @@
 // 岛屿本体由引擎 terrain.js 的 buildIsland 负责（用本文件的 surfaceAt 决定顶面贴图）。
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
-import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_SOLID, ROOF_BEAM_STEP, WINDOWS, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_SOLID, ROOF_BEAM_STEP, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { inRect } from '@engine/world/terrain.js';
 
 const SHELL = { x0: HOUSE.x0 - 1, x1: HOUSE.x1 + 1, z0: HOUSE.z0 - 1, z1: HOUSE.z1 + 1 };
 
-// 外墙窗洞判定：只有落在 WINDOWS 矩形内的墙格才是玻璃，其余皆为实墙。
-const inWindow = (x, y, z) => WINDOWS.some(w =>
-  x >= w.x0 && x < w.x1 && z >= w.z0 && z < w.z1 && y >= w.y0 && y < w.y1);
+// 外墙承重柱：四角必为柱，东西墙按 z、南北墙按 x 每 4 m 一根；南墙门洞（ENTRANCE）不立柱。
+// 墙体其余皆为玻璃。注意：东西墙只按 z 判定，绝不能落到“按 x 判定”的收尾分支，否则整面墙变柱。
+const PILLAR_STEP = 4;
+const isPillarCell = (x, z) => {
+  const onW = x === HOUSE.x0 - 1, onE = x === HOUSE.x1, onN = z === HOUSE.z0 - 1, onS = z === HOUSE.z1;
+  if (!onW && !onE && !onN && !onS) return false;
+  if ((onW || onE) && (onN || onS)) return true;            // 四角必为柱
+  const mod = v => ((v % PILLAR_STEP) + PILLAR_STEP) % PILLAR_STEP;
+  if (onW || onE) return mod(z - HOUSE.z0) === 0;            // 东西墙：沿 z 每 4 m 一根
+  if (onS && x >= ENTRANCE.x0 && x <= ENTRANCE.x1) return false; // 门洞留空，不立柱
+  return mod(x - (HOUSE.x0 - 1)) === 0;                      // 南北墙：沿 x 每 4 m 一根
+};
 
 export function defineHouseBlocks(grid) {
   const interior = (x, y, z) => x >= HOUSE.x0 && x < HOUSE.x1 && z >= HOUSE.z0 && z < HOUSE.z1 && y >= 0 && y < HOUSE.height;
@@ -37,6 +46,7 @@ export function defineHouseBlocks(grid) {
   grid.define('pool_deep', { tex: { all: 'pool_deep' } });
   grid.define('coping', { tex: { top: 'travertine', side: 'pool_tile', bottom: 'pool_tile' } });
   grid.define('beam', { tex: { all: 'black_metal' }, merge: true });
+  grid.define('pillar', { tex: { all: 'black_metal' }, merge: true });
 }
 
 // 屋内铺木地板、屋外草地；泳池周围的露台铺石材。
@@ -50,7 +60,7 @@ export function surfaceAt(x, z) {
 // 楼板下的实体基座、一层与二层隔墙。
 export function buildShell(grid) {
   const { x0, x1, z0, z1, height } = HOUSE;
-  const cell = (x, y, z, door) => door ? null : (inWindow(x, y, z) ? 'glass' : 'wall');
+  const cell = (x, y, z, door) => door ? null : (isPillarCell(x, z) ? 'pillar' : 'glass');
   // 四壁，每面一个 group，便于相机需要时可单独隐藏。
   for (let y = 0; y < height; y++) {
     for (let x = x0 - 1; x <= x1; x++) {
