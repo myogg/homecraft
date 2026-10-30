@@ -1,8 +1,31 @@
+// 把世界拼起来：岛屿 + 房屋外壳 + 楼梯 + 登顶梯 + 家具 + 树。
+// 引擎在启动时调用一次 build()，返回 batches/planes/obstacles/lights/bakes/hotspots/animated/surfaces/forest/sitesAfter。
 import { buildIsland } from '@engine/world/terrain.js';
 import { buildForest } from '@engine/world/landscape.js';
+import { defineHouseBlocks, surfaceAt, buildShell, buildStairs, buildRoofAccess } from './house.js';
+import { furnish } from './furnish.js';
 import { ISLAND, TREES } from './layout.js';
 
-export function build({ grid, layer }) {
-  buildIsland(grid, ISLAND, { surfaceAt: () => 'grass', corner: 10, wobble: 0 });
-  return { forest: buildForest(grid, layer, TREES) };
+export function build({ grid, layer, materials, stage }) {
+  defineHouseBlocks(grid);
+  buildIsland(grid, ISLAND, { surfaceAt });
+  buildShell(grid);
+  const forest = buildForest(grid, layer, TREES);
+  const furn = furnish({ layer });
+  const stairs = buildStairs(layer);
+  const roofAccess = buildRoofAccess(layer, materials);
+  stage.scene.add(roofAccess.group);
+  return {
+    batches: { ...furn.batches, stairs: stairs.batch },
+    planes: furn.planes,
+    obstacles: furn.obstacles,
+    lights: furn.lights,
+    bakes: furn.lighting,
+    hotspots: furn.hotspots,
+    animated: furn.animated,
+    surfaces: furn.surfaces,
+    forest,
+    sitesAfter: [roofAccess],
+    named: { roofAccess },
+  };
 }

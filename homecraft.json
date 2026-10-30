@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "name": "My Home",
-  "url": "",
+  "name": "myogg 的家",
+  "url": "https://myogg.xyz",
   "logo": "assets/favicon.png",
-  "intro": "",
+  "intro": { "zh": "独立开发者 · 技术写作", "en": "Indie dev · Tech writing" },
   "lang": ["zh", "en"],
   "homecraft": true
 }

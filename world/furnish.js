@@ -1,0 +1,223 @@
+// 家具与陈设：一层客厅/书房/厨房/卫生间/衣帽间，二层两卧室+卫生间，屋顶观景台。
+// 全部静态合批；电视/电脑屏用 canvas 贴图 + 自发光平面（glow），未接渲染管线也能直接显示画面。
+import * as THREE from 'three';
+import { BoxBatch } from '@engine/world/blocks.js';
+import { canvasTexture } from '@engine/world/textures.js';
+import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX } from './layout.js';
+
+const L = {
+  wood: { tex: 'wood_panel' }, floor: { tex: 'greige_floor' },
+  panel: { tex: 'wood_panel' }, marble: { tex: 'prada_marble' },
+  steel: { tex: 'steel' }, plaster: { tex: 'plaster' }, linen: { tex: 'linen' },
+  books: { tex: 'bookshelf', top: 'wood_panel' },
+  paint: tint => ({ tex: 'paint', tint }),
+  light: (tint, emissive = 1) => ({ tex: 'paint', tint, emissive }),
+};
+
+export function furnish({ layer }) {
+  const B = new BoxBatch(layer);
+  const batches = { static: B, wallN: new BoxBatch(layer), wallS: new BoxBatch(layer), wallE: new BoxBatch(layer), wallW: new BoxBatch(layer) };
+  const obstacles = [], lights = [], lighting = [], hotspots = [], planes = [], animated = {}, surfaces = {};
+  const bake = (id, x, y, z, power, radius, direction = null) => lighting.push({ id, position: [x, y, z], power, radius, direction });
+  // 障碍 level：0 挡一层（nav 高度 < 2 的格子），1 挡二层（nav 高度 ≥ 2 的格子）。
+  const foot = (x, z, w, d, level = 0) => obstacles.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, level });
+  const hot = (id, x, y, z, w, h, d) => hotspots.push({ id, box: new THREE.Box3(new THREE.Vector3(x - w / 2, y, z - d / 2), new THREE.Vector3(x + w / 2, y + h, z + d / 2)) });
+  const plane = (w, h, tex, x, y, z, ry = 0, glow = false, rx = 0) => {
+    const mat = glow ? new THREE.MeshBasicMaterial({ map: tex }) : new THREE.MeshLambertMaterial({ map: tex });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, 0, 'YXZ');
+    mesh.receiveShadow = !glow; planes.push(mesh); return mesh;
+  };
+  const paint = (w, h, fn) => canvasTexture(w, h, fn);
+  // 吊灯：杆从 y+0.62 直上屋顶（HOUSE.height），灯体挂在 y 处。
+  const pendant = (x, z, y) => {
+    B.box(x, y + 0.62, z, 0.04, HOUSE.height - y - 0.62, 0.04, L.steel);
+    for (const dx of [-0.19, 0.19]) for (const dz of [-0.19, 0.19]) B.box(x + dx, y, z + dz, 0.035, 0.62, 0.035, L.steel);
+    for (const dy of [0, 0.58]) B.box(x, y + dy, z, 0.42, 0.04, 0.42, L.steel);
+    B.box(x, y + 0.06, z, 0.3, 0.48, 0.3, L.light(0xffdfa8));
+    bake('pendant', x, y + 0.2, z, 3.2, 13, [0, -1, 0]);
+  };
+  const ly = LOFT.y;
+  // 床（二层用）：床头朝北（-z），两侧床头柜 + 暖光灯；障碍 level 1。
+  const bed = (x, y, z) => {
+    B.box(x, y, z, 3.2, 0.3, 4, L.linen);                    // 床垫
+    B.box(x, y + 0.3, z - 1.4, 3.0, 0.5, 1.2, L.paint(0xf2efe9)); // 被褥
+    B.box(x, y + 0.8, z - 1.6, 2.6, 0.25, 0.8, L.paint(0xe7e2d8)); // 枕头
+    B.box(x, y, z - 1.9, 3.4, 1.4, 0.25, L.panel);           // 床背（床头一侧）
+    foot(x, z, 5.2, 4.4, 1);
+    for (const sx of [-2.1, 2.1]) {
+      B.box(x + sx, y, z - 1.4, 0.8, 0.6, 0.8, L.panel);     // 床头柜
+      B.box(x + sx, y + 0.6, z - 1.4, 0.86, 0.05, 0.86, L.marble);
+      B.box(x + sx, y + 0.65, z - 1.4, 0.2, 0.3, 0.2, L.light(0xffdfa8));
+    }
+    bake('bed-lamp', x, y + 1, z - 1.4, 1.2, 4, [0, -1, 0]);
+  };
+  // 人体工学椅：ry=0 时椅背在 +z（南），人面朝北（-z）看桌与显示器。
+  const ergonomicChair = (x, z, ry) => {
+    const black = L.paint(0x1c1f21), mesh = { tex: 'chair_mesh' };
+    B.at(x, 0, z, ry, () => {
+      for (let i = 0; i < 5; i++) B.at(0, 0, 0, i * Math.PI * 2 / 5, () => {
+        B.box(0, 0.12, 0.18, 0.07, 0.065, 0.4, L.paint(0x747b7c)); B.box(0, 0.025, 0.36, 0.13, 0.1, 0.1, L.steel);
+      });
+      B.box(0, 0.15, 0, 0.09, 0.33, 0.09, L.paint(0x8d9799));
+      B.box(0, 0.47, 0, 0.58, 0.1, 0.55, black); B.box(0, 0.53, 0.27, 0.52, 0.67, 0.065, mesh, { rx: -0.1 });
+      for (const cx of [-0.28, 0.28]) B.box(cx, 0.52, 0.28, 0.04, 0.72, 0.07, L.steel, { rx: -0.1 });
+      B.box(0, 0.75, 0.3, 0.42, 0.12, 0.11, black);
+      for (const cx of [-0.36, 0.36]) { B.box(cx, 0.5, 0.08, 0.045, 0.23, 0.05, L.paint(0x747b7c)); B.box(cx, 0.72, 0, 0.09, 0.04, 0.36, black); }
+    });
+  };
+  // 二层栏杆段（轴对齐）：上下两道横杆 + 立柱，障碍 level 1。
+  const rail = (x0, z0, x1, z1) => {
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = Math.abs(x1 - x0), d = Math.abs(z1 - z0);
+    const alongX = w >= d;
+    for (const y of [ly + 0.45, ly + 0.88]) B.box(cx, y, cz, alongX ? w : 0.06, 0.06, alongX ? 0.06 : d, L.steel);
+    const posts = Math.max(2, Math.round((alongX ? w : d) / 2.2) + 1);
+    for (let i = 0; i < posts; i++) {
+      const t = i / (posts - 1);
+      B.box(alongX ? x0 + (x1 - x0) * t : cx, ly, alongX ? cz : z0 + (z1 - z0) * t, 0.06, 0.9, 0.06, L.steel);
+    }
+    foot(cx, cz, w + 0.25, d + 0.25, 1);
+  };
+
+  // 屏幕画面：电视（山海夜景）与显示器（代码雨）。
+  const tvPaint = (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#1b2a4a'); g.addColorStop(1, '#0a1020');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(w * 0.72, h * 0.32, h * 0.12, 0, 7); ctx.fill();
+    ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w * 0.32, h * 0.55); ctx.lineTo(w * 0.52, h); ctx.fill();
+    ctx.fillStyle = '#1d4a3a'; ctx.beginPath(); ctx.moveTo(w * 0.4, h); ctx.lineTo(w * 0.66, h * 0.5); ctx.lineTo(w * 0.92, h); ctx.fill();
+    ctx.fillStyle = '#e8eef2'; ctx.font = `${Math.round(h * 0.12)}px sans-serif`; ctx.fillText('▶ 正在播放', w * 0.06, h * 0.2);
+  };
+  const monitorPaint = (ctx, w, h) => {
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, w, h);
+    const colors = ['#79c0ff', '#7ee787', '#ffa657', '#d2a8ff', '#ff7b72'];
+    ctx.font = `${Math.round(h * 0.07)}px monospace`;
+    for (let i = 0; i < 11; i++) { ctx.fillStyle = colors[i % colors.length]; ctx.fillText('const ' + 'home'.repeat(1 + (i % 3)) + ' = craft();', w * 0.04, h * (0.12 + i * 0.075)); }
+  };
+  // 角落电脑桌：桌面 + 钢腿 + 显示器（画面朝 +z/南，观者站在南侧）。
+  const deskComp = (x, z, ry) => B.at(x, 0, z, ry, () => {
+    B.box(0, 1.05, 0, 2.4, 0.08, 0.9, L.panel);
+    for (const lx of [-1.05, 1.05]) B.box(lx, 0, 0, 0.1, 1.05, 0.1, L.steel);
+    plane(1.7, 1.0, paint(420, 250, monitorPaint), 0, 1.95, -0.2, ry, true);
+    B.box(0, 1.1, 0.25, 1.7, 0.06, 0.1, L.steel);
+  });
+
+  // ===== 一层：客厅（西，x[-12,-2] z[0,6]，挑高到屋顶）=====
+  B.box(-7, 0, 3, 8, 0.025, 5.6, L.linen);                 // 地毯
+  const sofaX = -4.5, sofaZ = 3;
+  B.box(sofaX, 0.08, sofaZ, 1, 0.48, 4, L.paint(0x1c1e20));
+  B.box(sofaX + 0.45, 0.48, sofaZ, 0.2, 0.62, 4, L.paint(0x1c1e20));
+  for (const z of [sofaZ - 1.7, sofaZ + 1.7]) B.box(sofaX, 0.08, z, 1, 0.65, 0.2, L.paint(0x1c1e20));
+  foot(sofaX, sofaZ, 1.2, 4.2); hot('about', sofaX, 0, sofaZ, 1.4, 1.2, 4.2);
+  B.box(sofaX - 0.6, 0, sofaZ, 1.4, 0.45, 2.2, L.marble); foot(sofaX - 0.6, sofaZ, 1.5, 2.3); // 茶几
+  // 电视（西墙，画面朝东）。
+  B.box(-11.06, 1.1, sofaZ, 0.1, 2.3, 3.6, L.steel);       // 墙托
+  B.box(-11.0, 0.9, sofaZ, 0.06, 2.7, 4, L.paint(0x0a0a0a));
+  plane(3.4, 1.95, paint(680, 390, tvPaint), -10.9, 2.1, sofaZ, Math.PI / 2, true);
+  bake('tv', -10.7, 2.1, sofaZ, 1.4, 6, [1, -0.4, 0]);
+  // 落地灯与吊灯。
+  B.box(-3.2, 0, 5.4, 0.5, 0.055, 0.5, L.steel); B.box(-3.2, 0.055, 5.4, 0.065, 1.72, 0.065, L.steel);
+  B.box(-3.2, 1.75, 5.4, 0.7, 0.25, 0.7, L.linen); B.box(-3.2, 1.728, 5.4, 0.56, 0.025, 0.56, L.light(0xffe4ba));
+  foot(-3.2, 5.4, 0.55, 0.55); bake('living-lamp', -3.2, 1.72, 5.4, 1.05, 5.8, [0, -1, 0]);
+  pendant(-7, 3, 5.6);
+  // 客厅电脑（北墙基座前的书桌 + 显示器，观者从南侧看屏幕）。
+  deskComp(-10, 0.9, 0); foot(-10, 0.9, 2.5, 1);
+
+  // ===== 一层：书房（东南，x[2,12] z[0,4]）=====
+  B.box(11.66, 0, 2, 0.45, 3.4, 3.6, L.books);             // 东墙通顶书架
+  foot(11.66, 2, 0.55, 3.7);
+  for (let i = 0; i < 7; i++) B.box(11.58, 0.4 + i * 0.42, 2, 0.22, 0.04, 3.4, L.wood); // 隔板
+  B.at(7, 0, 2, 0, () => {                                  // 书桌 + 显示器（画面朝南）
+    B.box(0, 1.05, 0, 3, 0.08, 1.1, L.panel);
+    for (const lx of [-1.3, 1.3]) B.box(lx, 0, 0, 0.12, 1.05, 0.12, L.steel);
+    B.box(0, 1.13, -0.3, 2.4, 0.05, 0.12, L.steel);
+    plane(2.0, 1.15, paint(500, 290, monitorPaint), 0, 2.0, -0.5, 0, true);
+  });
+  foot(7, 2, 3.1, 1.2);
+  B.box(7, 0, 3.55, 1.6, 0.7, 0.5, L.paint(0x2a2f33));      // 主机柜
+  B.box(7, 0.7, 3.55, 1.5, 0.04, 0.5, L.steel); foot(7, 3.55, 1.7, 0.6);
+  ergonomicChair(7, 2.7, 0); foot(7, 2.7, 0.85, 0.85);      // 椅面朝北对着桌子
+
+  // ===== 一层：厨房（东南，x[2,12] z[4,10]）=====
+  B.box(11.35, 0, 7, 1.1, 0.9, 5, L.steel);                 // 东墙操作台
+  B.box(11.35, 0.9, 7, 1.2, 0.1, 5.2, L.marble); foot(11.35, 7, 1.3, 5.3);
+  B.box(11.35, 0.95, 5.6, 0.6, 0.02, 1.0, L.paint(0x556b70)); // 水槽
+  B.box(11.35, 0.97, 5.6, 0.42, 0.01, 0.85, L.steel); B.box(11.1, 1.4, 5.6, 0.4, 0.05, 0.07, L.steel);
+  for (const dx of [-0.18, 0.18]) for (const dz of [-0.32, 0.32]) B.box(11.35 + dx, 0.95, 8.4 + dz, 0.26, 0.02, 0.24, L.steel); // 灶
+  B.box(11.55, 2.2, 8.4, 0.7, 0.5, 2.1, L.steel);           // 抽油烟机
+  B.box(3.1, 0, 9.3, 1.2, 2.4, 1.1, L.steel); foot(3.1, 9.3, 1.3, 1.2); // 冰箱
+  B.box(3.1, 1.1, 8.72, 0.5, 0.05, 0.06, L.steel);
+  B.box(7, 0, 7.2, 3.6, 0.9, 1.4, L.steel);                 // 中岛
+  B.box(7, 0.9, 7.2, 3.8, 0.12, 1.5, L.marble); foot(7, 7.2, 3.9, 1.6);
+  B.box(7, 2.75, 7.2, 0.025, HOUSE.height - 2.75, 0.025, L.steel, { shadow: false });
+  B.box(7, 2.66, 7.2, 1.65, 0.09, 0.22, L.steel);
+  B.box(7, 2.637, 7.2, 1.48, 0.025, 0.15, L.light(0xffe4ba)); bake('island-pendant', 7, 2.62, 7.2, 1.45, 5, [0, -1, 0]);
+
+  // ===== 一层：卫生间（西南，x[-12,-9] z[7,10]，门朝北）=====
+  B.box(-10.5, 0, 8.5, 2.8, 0.1, 2.8, L.paint(0xeef1f2));   // 地砖
+  B.box(-11.62, 0, 8.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 马桶水箱
+  B.box(-11.3, 0.5, 8.5, 0.75, 0.45, 0.85, L.paint(0xf4f6f7)); foot(-11.35, 8.5, 1, 1.6);
+  B.box(-9.75, 0, 7.75, 1.3, 0.12, 1.3, L.paint(0x9cc4d6)); // 淋浴房（东北角）
+  B.box(-9.25, 0.12, 7.25, 0.06, 1.9, 0.06, L.steel); B.box(-9.25, 2.0, 7.5, 0.22, 0.05, 0.22, L.steel);
+  foot(-9.75, 7.75, 1.4, 1.4);
+  B.box(-10.4, 0, 9.55, 1.2, 0.9, 0.6, L.marble);           // 洗脸台（南墙）
+  B.box(-10.4, 0.9, 9.55, 1.3, 0.1, 0.7, L.marble); foot(-10.4, 9.55, 1.4, 0.8);
+  B.box(-10.4, 1.0, 9.45, 0.5, 0.18, 0.4, L.steel); B.box(-10.4, 1.6, 9.88, 0.6, 0.8, 0.05, L.paint(0xbfe0e8));
+  bake('bath', -10.5, 2.6, 8.5, 1.6, 5, [0, -1, 0]);
+
+  // ===== 一层：衣帽间（卫生间东侧，x[-9,-6] z[7,10]，门朝北）=====
+  B.box(-8.62, 0, 8.5, 0.55, 2.6, 2.6, L.panel);            // 西墙衣柜
+  foot(-8.62, 8.5, 0.65, 2.7);
+  B.box(-7.4, 0, 9.6, 2.2, 2.6, 0.55, L.panel);             // 南墙衣柜
+  foot(-7.4, 9.6, 2.3, 0.65);
+  B.box(-6.32, 1.2, 8.2, 0.06, 1.7, 1.3, L.paint(0xbfe0e8)); // 镜
+  B.box(-7.4, 0, 7.9, 0.7, 0.5, 0.7, L.paint(0x2a2f33)); foot(-7.4, 7.9, 0.8, 0.8); // 坐凳
+  bake('cloak', -7.5, 2.5, 8.3, 1.4, 4.5, [0, -1, 0]);
+
+  // ===== 楼梯两侧的碰撞挡（免得从侧面穿进踏步）=====
+  foot(-1.95, 2, 0.35, 8, 0); foot(1.95, 2, 0.35, 8, 0);
+
+  // ===== 二层（loft，y=4）：主卧（西北）、次卧（东北）、卫生间（正北，墙在 house.js）=====
+  bed(-7, ly, -5);
+  bed(7, ly, -5);
+  B.box(-2.62, ly, -6.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 二层卫生间：马桶（西墙）
+  B.box(-2.3, ly + 0.5, -6.5, 0.75, 0.45, 0.85, L.paint(0xf4f6f7)); foot(-2.4, -6.5, 1, 1.6, 1);
+  B.box(1.9, ly, -8.8, 1.7, 0.12, 1.7, L.paint(0x9cc4d6));   // 淋浴房（东北角）
+  B.box(2.55, ly, -9.45, 0.06, 1.9, 0.06, L.steel); B.box(2.55, ly + 2.0, -9.1, 0.22, 0.05, 0.22, L.steel);
+  foot(1.9, -8.8, 1.8, 1.8, 1);
+  B.box(1.7, ly, -5.45, 1.2, 0.9, 0.6, L.marble);            // 洗脸台（南墙内侧）
+  B.box(1.7, ly + 0.9, -5.45, 1.3, 0.1, 0.7, L.marble); foot(1.7, -5.45, 1.4, 0.8, 1);
+  bake('bath2', 0, ly + 2.6, -7.5, 1.6, 5, [0, -1, 0]);
+  // 挑空边缘的护栏（南沿 + 楼梯井两侧）。
+  rail(-11.8, -0.3, -2.3, -0.3); rail(2.3, -0.3, 11.8, -0.3);
+  rail(-2.2, -1.85, -2.2, -0.25); rail(2.2, -1.85, 2.2, -0.25);
+  // 二层吊灯。
+  pendant(-7, -5, ly); pendant(7, -5, ly); pendant(0, -3, ly);
+
+  // ===== 屋顶观景台（y = ROOF_LADDER.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
+  const dy = ROOF_LADDER.top;
+  const stool = (x, z) => {
+    B.at(x, dy, z, 0, () => { B.box(0, 0.05, 0, 0.5, 0.06, 0.5, L.steel); for (const dx of [-0.2, 0.2]) for (const dz of [-0.2, 0.2]) B.box(dx, 0, dz, 0.05, 0.45, 0.05, L.steel); B.box(0, 0.5, 0, 0.46, 0.06, 0.46, L.paint(0x2a2f33)); });
+  };
+  for (const [x, z] of [[-8, -6], [8, -6], [-8, 6], [8, 6], [0, 0]]) stool(x, z);
+  const umbrella = (x, z) => {
+    B.box(x, dy, z, 0.1, 2.2, 0.1, L.steel, { shadow: false });
+    B.at(x, dy + 2.2, z, 0, () => { B.box(0, 0, 0, 3.2, 0.06, 3.2, L.paint(0xd14b3a), { rx: 0.18 }); });
+    B.box(x, dy + 2.0, z, 0.06, 0.06, 3.2, L.paint(0xd14b3a));
+  };
+  umbrella(-8, -6); umbrella(8, 6);
+  for (const [x, z] of [[-10, 8], [10, -8]]) { B.box(x, dy, z, 0.3, 0.06, 0.3, L.steel); B.box(x, dy + 0.06, z, 0.22, 0.5, 0.22, L.light(0xffe4ba)); }
+  bake('deck-lights', 0, dy + 0.5, 0, 4, 18, [0, -1, 0]);
+
+  // ===== 室外：信箱；楼梯踏步灯 =====
+  B.box(MAILBOX.x, 0, MAILBOX.z, 0.5, 1.1, 0.4, L.paint(0x33405a)); B.box(MAILBOX.x, 1.1, MAILBOX.z, 0.55, 0.18, 0.45, L.paint(0x44546f)); foot(MAILBOX.x, MAILBOX.z, 0.6, 0.5);
+  for (let i = 0; i < 8; i++) bake('stair-glow', 0, 0.5 + i * 0.45, STAIRS.z1 - 0.5 - i, 0.3, 2.2, [0, -1, 1]);
+
+  // 两盏实时点光，手机与桌面一致。
+  for (const [x, z, power] of [[-7, 3, 45], [7, 7, 40]]) {
+    const light = new THREE.PointLight(0xffe6c4, 0, 22, 2);
+    light.position.set(x, 3, z); light.userData = { base: power, day: 0.15, priority: 1 }; lights.push(light);
+  }
+
+  return { batches, obstacles, lights, lighting, hotspots, planes, animated, surfaces };
+}
