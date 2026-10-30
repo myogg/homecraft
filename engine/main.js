@@ -147,13 +147,22 @@ async function boot() {
   const avatar = createAvatar(worn.url, worn.carried ? {} : { onFace: ownFace });
   if (worn.carried && config.skin) readFace(config.skin, ownFace);
   stage.scene.add(avatar.root, avatar.blob);
-  // Pets live where the world says (its PETS: { cat, dog } with anchors to wander between).
+  // Pets live where the world says. A world may declare them as the legacy
+  // PETS: { cat, dog } object, or as PETS.list: [{ kind, seed, key?, anchors, within?, home? }]
+  // so it can have more than one of a kind (e.g. two cats).
   const pets = [], bodies = {};
-  for (const [kind, make, seed] of [['cat', createCat, 1989], ['dog', createDog, 2525]]) {
-    const plan = L.PETS?.[kind];
-    if (!plan) continue;
-    const body = bodies[kind] = make(); stage.scene.add(body.root);
-    pets.push(createPetLife(body, nav, { kind, seed, ...plan }));
+  const petSpecs = [];
+  if (Array.isArray(L.PETS?.list)) petSpecs.push(...L.PETS.list);
+  else if (L.PETS) for (const [kind, make, seed] of [['cat', createCat, 1989], ['dog', createDog, 2525]]) {
+    const plan = L.PETS[kind];
+    if (plan) petSpecs.push({ kind, make, seed, key: kind, ...plan });
+  }
+  for (const spec of petSpecs) {
+    const { kind, make, seed, key = kind, anchors, within, home } = spec;
+    if (!make || !anchors?.length) continue;
+    const body = make(); stage.scene.add(body.root);
+    bodies[key] = body;
+    pets.push(createPetLife(body, nav, { kind, seed, anchors, within, home }));
   }
   const cat = bodies.cat || null, dog = bodies.dog || null;
   const atmosphere = createAtmosphere(stage, world.surfaces);

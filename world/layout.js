@@ -20,7 +20,25 @@ export const HOUSE = { x0: -12, x1: 12, z0: -10, z1: 10, height: 8 };
 export const LOFT = { x0: HOUSE.x0, x1: HOUSE.x1, z0: HOUSE.z0, z1: 0, y: 4 };
 
 // 中央直跑楼梯井：从一层（z=6）向北上升到二层（z=-2），floorAt 在 z 方向做斜坡。
-export const STAIRS = { x0: -2, x1: 2, z0: -2, z1: 6 };
+// 位置偏到西侧（x[-7,-3]），进门不再正对楼梯——楼梯在左手边，中庭敞开。
+export const STAIRS = { x0: -7, x1: -3, z0: -2, z1: 6 };
+
+// 宠物：两只猫 + 一条狗，屋里屋外（地面层 + 院子，不出岛、不下水）自由走动。
+// 引擎按 PETS.list 逐只生成；anchors 是游荡点（第一个为出发点 hub），home 为初始睡觉点。
+// within 不限制，靠引擎 nav 自动避开泳池与岛外——宠物只在可站立的地面层活动。
+export const PETS = {
+  list: [
+    { kind: 'cat', key: 'cat', seed: 1989,
+      anchors: [[0.5, 8], [9, 2], [9, 9], [-13, 16], [14, 18]],
+      home: [0.5, 8] },
+    { kind: 'cat', key: 'cat2', seed: 7143,
+      anchors: [[-1.2, 5.5], [0.5, 13], [-12, 22], [14, 16], [0.5, 12]],
+      home: [-1.2, 5.5] },
+    { kind: 'dog', key: 'dog', seed: 2525,
+      anchors: [[0.5, 13], [14, 18], [-13, 16], [0.5, 8], [9, 9], [-1, 22]],
+      home: [0.5, 13] },
+  ],
+};
 
 // 屋顶观景台用的外墙直梯（东侧外墙外，离墙≥1.5m 以免梯脚落入墙体阻挡格），登顶后步入屋顶。
 export const ROOF_LADDER = { x: 13.5, z: 7.5, top: 9, gate0: 6.5, gate1: 8.5 };
@@ -93,7 +111,7 @@ export const TREES = [[28, 22], [-28, 20], [30, -6], [-30, -8], [24, 27],
 // deck 的 at 在梯脚：传送过去后向前走即可自动攀爬登顶；show 是打开页面时的取景镜头。
 export const STATIONS = [
   // 客厅：沙发与西墙电视之间。
-  { id: 'about', name: '客厅', en: 'Living room', at: [-7, 3], look: [-11, 3] },
+  { id: 'about', name: '客厅', en: 'Living room', at: [-1, 3], look: [-11, 3] },
   // 书房：书桌前。
   { id: 'works', name: '书房', en: 'Study', at: [7, 3.8], look: [7, 1.5] },
   // 厨房：中岛旁。
