@@ -2,13 +2,14 @@
 // 岛屿本体由引擎 terrain.js 的 buildIsland 负责（用本文件的 surfaceAt 决定顶面贴图）。
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
-import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_GLASS } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_GLASS, WINDOWS, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { inRect } from '@engine/world/terrain.js';
 
 const SHELL = { x0: HOUSE.x0 - 1, x1: HOUSE.x1 + 1, z0: HOUSE.z0 - 1, z1: HOUSE.z1 + 1 };
 
-// 上下两层窗带（地面层 y=1,2；二层 y=5,6）+ 入户门（南墙正中，高 3 m）。
-const GLASS_BAND = new Set([1, 2, 5, 6]);
+// 外墙窗洞判定：只有落在 WINDOWS 矩形内的墙格才是玻璃，其余皆为实墙。
+const inWindow = (x, y, z) => WINDOWS.some(w =>
+  x >= w.x0 && x < w.x1 && z >= w.z0 && z < w.z1 && y >= w.y0 && y < w.y1);
 
 export function defineHouseBlocks(grid) {
   const interior = (x, y, z) => x >= HOUSE.x0 && x < HOUSE.x1 && z >= HOUSE.z0 && z < HOUSE.z1 && y >= 0 && y < HOUSE.height;
@@ -31,18 +32,24 @@ export function defineHouseBlocks(grid) {
     : z === HOUSE.z1 ? 5 : -1;
   grid.define('glass', { kind: 'glass', tex: { all: 'glass' }, merge: true,
     skipFace: (f, x, y, z) => { const keep = paneFace(x, y, z); return keep >= 0 && f !== keep; } });
+  // 泳池：池底深砖、池壁瓷砖、池缘（顶石灰华、侧面瓷砖）。
+  grid.define('pool_tile', { tex: { all: 'pool_tile' } });
+  grid.define('pool_deep', { tex: { all: 'pool_deep' } });
+  grid.define('coping', { tex: { top: 'travertine', side: 'pool_tile', bottom: 'pool_tile' } });
 }
 
-// 屋内铺木地板、屋外草地。
+// 屋内铺木地板、屋外草地；泳池周围的露台铺石材。
 export function surfaceAt(x, z) {
-  return inRect(SHELL, x, z) ? 'wood_floor' : 'grass';
+  if (inRect(SHELL, x, z)) return 'wood_floor';
+  if (inRect(POOL_DECK, x, z)) return 'travertine';
+  return 'grass';
 }
 
 // 搭建外壳：四壁（窗带+门）、屋顶+围栏、北半部二层楼板（避开楼梯井）、
 // 楼板下的实体基座、一层与二层隔墙。
 export function buildShell(grid) {
   const { x0, x1, z0, z1, height } = HOUSE;
-  const cell = (x, y, z, door) => door ? null : (GLASS_BAND.has(y) ? 'glass' : 'wall');
+  const cell = (x, y, z, door) => door ? null : (inWindow(x, y, z) ? 'glass' : 'wall');
   // 四壁，每面一个 group，便于相机需要时可单独隐藏。
   for (let y = 0; y < height; y++) {
     for (let x = x0 - 1; x <= x1; x++) {
@@ -82,6 +89,50 @@ export function buildShell(grid) {
   partition(-3, -5, 3, -4, [{ x0: -1, z0: -5, x1: 1, z1: -4 }], LOFT.y, 3);
   partition(-3, -10, -2, -5, [], LOFT.y, 3);
   partition(2, -10, 3, -5, [], LOFT.y, 3);
+}
+
+// 泳池池体：从 bed 到地面把池内挖空（池底 pool_deep、池内 null），池缘一圈
+// coping（顶石灰华、侧面瓷砖），南缘（朝海）留开成无边水面。先判 SHELL，避免
+// 与房屋重叠时把地板误判成瓷砖。
+export function buildPool(grid) {
+  for (let x = POOL.x0 - 1; x <= POOL.x1; x++) for (let z = POOL.z0 - 1; z <= POOL.z1; z++) {
+    if (inRect(SHELL, x, z)) continue;
+    const inside = x >= POOL.x0 && x < POOL.x1 && z >= POOL.z0 && z < POOL.z1;
+    const seaEdge = x >= POOL.x0 && x < POOL.x1 && z === POOL.z1;
+    for (let y = POOL.bed - 2; y < 0; y++) {
+      if (inside) grid.set(x, y, z, y < POOL.bed ? 'pool_deep' : null);
+      // 池内正下方每格都必须清空：y=-2 会在海面之上留下一道宽台，且紧邻水线
+      // 墙的那一格会共享面而闪烁。
+      else if (seaEdge) grid.set(x, y, z, y < POOL.bed ? 'pool_tile' : null);
+      else grid.set(x, y, z, y === -1 ? 'coping' : 'pool_tile');
+}
+}
+}
+
+// 入户门：门洞在 grid 里保持 null（可通行），这里只加视觉门板——两扇玻璃门各向
+// 室内打开 90°、贴在门洞两侧，中间通道不挡。门板走 BoxBatch，不参与碰撞。
+export function buildOpenings(layer) {
+  const B = new BoxBatch(layer);
+  const glass = { glass: true, tex: 'glass' }, steel = { tex: 'steel' };
+  const { x0, x1 } = ENTRANCE;
+  const z = HOUSE.z1;                       // 南墙中心线
+  const h = 2.86;                           // 门高（门洞 3 m）
+  const w = (x1 - x0) / 2;                  // 每扇宽 2 m
+  // 两扇玻璃门（透明玻璃板 + 细钢框），向室内打开 90° 贴两侧。
+  for (const [hinge, dir] of [[x0, 1], [x1, -1]]) {
+    B.at(hinge, 0, z, dir * Math.PI / 2, () => {
+      // 玻璃主面板（透明）。
+      B.box(w / 2, 0, 0, w - 0.1, h - 0.1, 0.04, glass);
+      // 钢框：上、下、铰链侧、自由侧。
+      B.box(w / 2, h - 0.06, 0, w, 0.06, 0.06, steel);
+      B.box(w / 2, 0.06, 0, w, 0.06, 0.06, steel);
+      B.box(0.06, h / 2, 0, 0.06, h, 0.06, steel);
+      B.box(w - 0.06, h / 2, 0, 0.06, h, 0.06, steel);
+      // 把手（自由侧）。
+      B.box(w - 0.18, 1.0, 0.1, 0.05, 0.2, 0.05, steel);
+    });
+  }
+  return B;
 }
 
 // 中央直跑楼梯：台阶从地面（z=STAIRS.z0）升到二层（z=STAIRS.z1），视觉块；

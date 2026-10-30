@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
 import { canvasTexture } from '@engine/world/textures.js';
-import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
 
 const L = {
   wood: { tex: 'wood_panel' }, floor: { tex: 'greige_floor' },
@@ -153,6 +153,16 @@ export function furnish({ layer }) {
   B.box(7, 2.66, 7.2, 1.65, 0.09, 0.22, L.steel);
   B.box(7, 2.637, 7.2, 1.48, 0.025, 0.15, L.light(0xffe4ba)); bake('island-pendant', 7, 2.62, 7.2, 1.45, 5, [0, -1, 0]);
 
+  // ===== 一层：餐厅（厨房北侧空地，x[3,6] z[4,7]）=====
+  const diningChair = (x, z, ry) => B.at(x, 0, z, ry, () => {
+    for (const dx of [-0.22, 0.22]) for (const dz of [-0.22, 0.22]) B.box(dx, 0, dz, 0.05, 0.45, 0.05, L.steel);
+    B.box(0, 0.45, 0, 0.5, 0.06, 0.5, L.wood); B.box(0, 0.86, 0.22, 0.5, 0.5, 0.06, L.wood);
+  });
+  B.box(4.6, 0, 5.4, 1.9, 0.08, 1.0, L.marble); foot(4.6, 5.4, 2.0, 1.1);
+  for (const dx of [-0.9, 0.9]) for (const dz of [-0.55, 0.55]) B.box(4.6 + dx, 0, 5.4 + dz, 0.06, 0.78, 0.06, L.steel);
+  diningChair(4.6, 4.6, 0); diningChair(4.6, 6.2, Math.PI); diningChair(3.6, 5.4, -Math.PI / 2); diningChair(5.6, 5.4, Math.PI / 2);
+  bake('dining', 4.6, 1.6, 5.4, 1.4, 5, [0, -1, 0]);
+
   // ===== 一层：卫生间（西南，x[-12,-9] z[7,10]，门朝北）=====
   B.box(-10.5, 0, 8.5, 2.8, 0.1, 2.8, L.paint(0xeef1f2));   // 地砖
   B.box(-11.62, 0, 8.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 马桶水箱
@@ -180,6 +190,23 @@ export function furnish({ layer }) {
   // ===== 二层（loft，y=4）：主卧（西北）、次卧（东北）、卫生间（正北，墙在 house.js）=====
   bed(-7, ly, -5);
   bed(7, ly, -5);
+  // 两间卧室各一组衣柜（贴北墙），障碍 level 1。
+  for (const wx of [-10.5, 9.5]) {
+    B.box(wx, ly, -9.2, 2.5, 2.4, 0.6, L.wood);
+    B.box(wx, ly + 0.05, -9.5, 2.3, 0.02, 0.04, L.steel);
+    B.box(wx + (wx < 0 ? 0.9 : -0.9), ly + 1.1, -8.9, 0.5, 1.0, 0.04, L.paint(0xbababa));
+    foot(wx, -9.2, 2.6, 0.7, 1);
+  }
+  // 室内绿植（陶盆 + 叶丛）。
+  const plant = (x, z, y = 0) => {
+    B.box(x, y, z, 0.34, 0.4, 0.34, L.paint(0xb5651d));
+    B.box(x, y + 0.4, z, 0.3, 0.04, 0.3, L.paint(0x8a4f15));
+    B.at(x, y + 0.44, z, 0, () => {
+      B.box(0, 0.5, 0, 0.7, 1.0, 0.7, L.paint(0x3f7d3f));
+      B.box(0, 1.1, 0, 0.5, 0.7, 0.5, L.paint(0x4f9350));
+    });
+  };
+  plant(-11.4, 0.6); plant(2.5, 4.6); plant(-11, -7.6, ly); plant(11, -7.6, ly);
   B.box(-2.62, ly, -6.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 二层卫生间：马桶（西墙）
   B.box(-2.3, ly + 0.5, -6.5, 0.75, 0.45, 0.85, L.paint(0xf4f6f7)); foot(-2.4, -6.5, 1, 1.6, 1);
   B.box(1.9, ly, -8.8, 1.7, 0.12, 1.7, L.paint(0x9cc4d6));   // 淋浴房（东北角）
@@ -208,6 +235,49 @@ export function furnish({ layer }) {
   umbrella(-8, -6); umbrella(8, 6);
   for (const [x, z] of [[-10, 8], [10, -8]]) { B.box(x, dy, z, 0.3, 0.06, 0.3, L.steel); B.box(x, dy + 0.06, z, 0.22, 0.5, 0.22, L.light(0xffe4ba)); }
   bake('deck-lights', 0, dy + 0.5, 0, 4, 18, [0, -1, 0]);
+
+  // ===== 室外：泳池（岛南草坪，紧邻房屋西侧）=====
+  // 池壁低处的夜灯：夜间映亮水面（光照由方块/水面着色器计算）。
+  for (const x of POOL_LAMPS.xs) B.box(x, POOL_LAMPS.y - 0.11, POOL.z0 + 0.015, 0.36, 0.22, 0.03, L.light(0xdffcff));
+  // 南缘（朝海）一道与水面齐平的檐口，做出无边水池的观感。
+  B.box((POOL.x0 + POOL.x1) / 2, POOL.bed, POOL.z1 + 0.06, POOL.x1 - POOL.x0, POOL.water - POOL.bed, 0.12,
+    L.paint(0x68b8c3), { shadow: false, tag: 'pool-infinity-edge' });
+  // 泳池出入梯：抛光栏杆翻过池缘，四根横档没入水中；游到此处可爬出水面。
+  const silver = L.paint(0xb3c1c3), ladderZ = POOL_LADDER.z;
+  for (const x of [POOL_LADDER.x0, POOL_LADDER.x1]) {
+    B.box(x, 0, ladderZ - 0.45, 0.065, 0.9, 0.065, silver);
+    B.box(x, 0.87, ladderZ - 0.08, 0.065, 0.065, 0.8, silver);
+    B.box(x, -1.65, ladderZ + 0.3, 0.065, 2.52, 0.065, silver);
+    B.box(x, -1.7, ladderZ + 0.2, 0.065, 0.08, 0.24, silver);
+  }
+  for (const y of [-0.15, -0.55, -0.95, -1.35]) B.box((POOL_LADDER.x0 + POOL_LADDER.x1) / 2, y, ladderZ + 0.3, 0.78, 0.07, 0.13, silver);
+  foot((POOL_LADDER.x0 + POOL_LADDER.x1) / 2, ladderZ - 0.45, 0.9, 0.12);
+  hot('pool', (POOL.x0 + POOL.x1) / 2, -0.3, (POOL.z0 + POOL.z1) / 2, POOL.x1 - POOL.x0, 0.6, POOL.z1 - POOL.z0);
+
+  // 躺椅（靠背在北端 +z，ry=0 时人面朝南；ry=-π/2 时人面朝东/泳池）。
+  const lounger = (x, z, ry) => B.at(x, 0, z, ry, () => {
+    for (const dx of [-0.32, 0.32]) for (const dz of [-0.95, 0.95]) B.box(dx, 0, dz, 0.06, 0.22, 0.06, L.steel);
+    B.box(0, 0.22, 0, 0.7, 0.09, 1.9, L.linen);
+    B.at(0, 0.27, 0.85, 0, () => B.box(0, 0, 0, 0.7, 0.5, 0.07, L.linen, { rx: -0.5 }));
+  });
+  // 沙滩遮阳伞：钢立柱 + 微倾方顶篷。
+  const beachUmbrella = (x, z) => {
+    B.box(x, 0, z, 0.08, 2.3, 0.08, L.steel, { shadow: false });
+    B.at(x, 2.35, z, 0, () => {
+      B.box(0, 0, 0, 2.6, 0.05, 2.6, L.paint(0xe9e3d6), { rx: 0.13 });
+      B.box(0, -0.04, 0, 0.06, 0.05, 2.6, L.paint(0xd14b3a));
+    });
+  };
+  // 边几：钢柱 + 石面。
+  const sideTable = (x, z) => {
+    B.box(x, 0, z, 0.06, 0.4, 0.06, L.steel);
+    B.box(x, 0.4, z, 0.5, 0.05, 0.5, L.marble);
+  };
+  // 西草坪一组（紧贴房屋西侧、面朝东/泳池）。
+  beachUmbrella(-11.5, 17); lounger(-11.5, 15.3, -Math.PI / 2); lounger(-11.5, 18.7, -Math.PI / 2); sideTable(-12.8, 17);
+  // 南草坪一组（朝海、面朝北/泳池）。
+  beachUmbrella(-5.5, 23); lounger(-7.2, 23, 0); lounger(-3.8, 23, 0); sideTable(-5.5, 24.8);
+  bake('pool-deck', (POOL.x0 + POOL.x1) / 2, 1.5, (POOL.z0 + POOL.z1) / 2, 3, 16, [0, -1, 0]);
 
   // ===== 室外：信箱；楼梯踏步灯 =====
   B.box(MAILBOX.x, 0, MAILBOX.z, 0.5, 1.1, 0.4, L.paint(0x33405a)); B.box(MAILBOX.x, 1.1, MAILBOX.z, 0.55, 0.18, 0.45, L.paint(0x44546f)); foot(MAILBOX.x, MAILBOX.z, 0.6, 0.5);
