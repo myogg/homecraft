@@ -2,7 +2,7 @@
 // 岛屿本体由引擎 terrain.js 的 buildIsland 负责（用本文件的 surfaceAt 决定顶面贴图）。
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
-import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_GLASS, WINDOWS, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_SOLID, ROOF_BEAM_STEP, WINDOWS, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { inRect } from '@engine/world/terrain.js';
 
 const SHELL = { x0: HOUSE.x0 - 1, x1: HOUSE.x1 + 1, z0: HOUSE.z0 - 1, z1: HOUSE.z1 + 1 };
@@ -36,6 +36,7 @@ export function defineHouseBlocks(grid) {
   grid.define('pool_tile', { tex: { all: 'pool_tile' } });
   grid.define('pool_deep', { tex: { all: 'pool_deep' } });
   grid.define('coping', { tex: { top: 'travertine', side: 'pool_tile', bottom: 'pool_tile' } });
+  grid.define('beam', { tex: { all: 'black_metal' }, merge: true });
 }
 
 // 屋内铺木地板、屋外草地；泳池周围的露台铺石材。
@@ -62,10 +63,11 @@ export function buildShell(grid) {
       grid.set(x1, y, z, cell(x1, y, z, false), 'wallE');
     }
   }
-  // 屋顶：实心屋顶（可行走的观景台）+ 几块玻璃天窗；四周 1 m 高围栏，东侧留梯口。
+  // 屋顶：玻璃顶（横梁分隔），放桌椅的正下方留实心；四周 1 m 围栏，东侧留梯口。
   for (let x = x0 - 1; x <= x1; x++) for (let z = z0 - 1; z <= z1; z++) {
-    const sky = ROOF_GLASS.some(s => inRect(s, x, z));
-    grid.set(x, height, z, sky ? 'glass' : 'roof', 'roof');
+    const solid = ROOF_SOLID.some(s => inRect(s, x, z));
+    const beam = !solid && ((x - (x0 - 1)) % ROOF_BEAM_STEP === 0 || (z - (z0 - 1)) % ROOF_BEAM_STEP === 0);
+    grid.set(x, height, z, solid ? 'roof' : beam ? 'beam' : 'glass', 'roof');
     const rim = x === x0 - 1 || x === x1 || z === z0 - 1 || z === z1;
     const gate = x === x1 && z >= ROOF_LADDER.gate0 && z < ROOF_LADDER.gate1;
     if (rim && !gate) grid.set(x, height + 1, z, 'parapet', 'roof');
