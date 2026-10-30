@@ -40,13 +40,14 @@ export function furnish({ layer }) {
   };
   const ly = LOFT.y;
   // 床（二层用）：床头朝北（-z），两侧床头柜 + 暖光灯；障碍 level 1。
-  const bed = (x, y, z) => {
+  // stands 可只给一侧，窄房间靠墙放床时不穿墙。
+  const bed = (x, y, z, stands = [-2.1, 2.1]) => {
     B.box(x, y, z, 3.2, 0.3, 4, L.linen);                    // 床垫
     B.box(x, y + 0.3, z - 1.4, 3.0, 0.5, 1.2, L.paint(0xf2efe9)); // 被褥
     B.box(x, y + 0.8, z - 1.6, 2.6, 0.25, 0.8, L.paint(0xe7e2d8)); // 枕头
     B.box(x, y, z - 1.9, 3.4, 1.4, 0.25, L.panel);           // 床背（床头一侧）
     foot(x, z, 5.2, 4.4, 1);
-    for (const sx of [-2.1, 2.1]) {
+    for (const sx of stands) {
       B.box(x + sx, y, z - 1.4, 0.8, 0.6, 0.8, L.panel);     // 床头柜
       B.box(x + sx, y + 0.6, z - 1.4, 0.86, 0.05, 0.86, L.marble);
       B.box(x + sx, y + 0.65, z - 1.4, 0.2, 0.3, 0.2, L.light(0xffdfa8));
@@ -197,7 +198,8 @@ export function furnish({ layer }) {
   foot(-7.05, 2, 0.35, 8, 0); foot(-3.05, 2, 0.35, 8, 0);
 
   // ===== 二层（loft，y=4）：主卧（西北）、次卧（东北）、卫生间（正北，墙在 house.js）=====
-  bed(-7, ly, -5);
+  // 主卧的床靠西墙，让开楼梯出口（楼梯 x[-7,-3] 上来不再正对床），窄侧只留东侧床头柜。
+  bed(-9.4, ly, -6, [2.1]);
   bed(7, ly, -5);
   // 两间卧室各一组衣柜（贴北墙），障碍 level 1。
   for (const wx of [-10.5, 9.5]) {
@@ -219,8 +221,8 @@ export function furnish({ layer }) {
   // 挑空边缘的护栏（南沿让出楼梯洞口 x[-7,-3]；楼梯井两侧加护杆）。
   rail(-11.8, -0.3, -7, -0.3); rail(-3, -0.3, 11.8, -0.3);
   rail(-7, -1.85, -7, -0.25); rail(-3, -1.85, -3, -0.25);
-  // 二层吊灯。
-  pendant(-7, -5, ly); pendant(7, -5, ly); pendant(0, -3, ly);
+  // 二层吊灯：传的是「离地高度」，必须用楼面 + 2.9 m；直接传 ly 会让灯体落在地面上。
+  pendant(-9.4, -6, ly + 2.9); pendant(7, -5, ly + 2.9); pendant(0, -3, ly + 2.9);
 
   // ===== 屋顶观景台（y = ROOF_LADDER.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
   const dy = ROOF_LADDER.top;
