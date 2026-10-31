@@ -764,7 +764,11 @@ async function boot() {
       const toLoft = !isle && surface && Math.abs(surface.y - loftY) < 1.1;
       if ((onLoft && toRoof) || (onDeck && (toLoft || (roofSite(isle?.site) && (isle?.y ?? 0) < loftY + 4)))) {
         const goalY = isle?.y ?? surface?.y ?? loftY;
-        const accepted = player.follow(stair.route(player.pos.x, player.y, player.pos.z, x, goalY, z));
+        // From a bedroom on the loft the stair is behind walls: let the walk grid
+        // take the player to its foot first, then follow the flight up. Already on
+        // the flight, just go on up.
+        const via = onLoft && player.y < loftY + 0.4 ? stair.foot : null;
+        const accepted = player.follow(stair.route(player.pos.x, player.y, player.pos.z, x, goalY, z), via);
         marker.show(x, goalY, z, accepted ? 0x85c9ff : 0xeab66a);
         if (accepted) return true;
       }
