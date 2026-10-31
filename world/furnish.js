@@ -81,14 +81,36 @@ export function furnish({ layer }) {
     foot(cx, cz, w + 0.25, d + 0.25, 1);
   };
 
-  // 屏幕画面：电视（山海夜景）与显示器（代码雨）。
+  // 屏幕画面：电视（100412.xyz 北方的博客 · 文章列表）与显示器（代码雨）。
   const tvPaint = (ctx, w, h) => {
-    const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#1b2a4a'); g.addColorStop(1, '#0a1020');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(w * 0.72, h * 0.32, h * 0.12, 0, 7); ctx.fill();
-    ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w * 0.32, h * 0.55); ctx.lineTo(w * 0.52, h); ctx.fill();
-    ctx.fillStyle = '#1d4a3a'; ctx.beginPath(); ctx.moveTo(w * 0.4, h); ctx.lineTo(w * 0.66, h * 0.5); ctx.lineTo(w * 0.92, h); ctx.fill();
-    ctx.fillStyle = '#e8eef2'; ctx.font = `${Math.round(h * 0.12)}px sans-serif`; ctx.fillText('▶ 正在播放', w * 0.06, h * 0.2);
+    ctx.fillStyle = '#111820'; ctx.fillRect(0, 0, w, h);
+    // 顶栏：站点名 + 导航
+    ctx.fillStyle = '#18212c'; ctx.fillRect(0, 0, w, h * 0.145);
+    ctx.fillStyle = '#eef2f6'; ctx.font = `600 ${Math.round(h * 0.062)}px sans-serif`;
+    ctx.fillText('北方的博客', w * 0.035, h * 0.098);
+    ctx.font = `${Math.round(h * 0.038)}px sans-serif`; ctx.fillStyle = '#7f8b99';
+    ['首页', '归档', '关于'].forEach((s, i) => ctx.fillText(s, w * (0.655 + i * 0.105), h * 0.094));
+    ctx.fillStyle = '#26313e'; ctx.fillRect(0, h * 0.145, w, Math.max(1, h * 0.005));
+    // 文章列表：缩略色块 + 日期 + 标题 + 摘要（只放 3 条，字号放大，远处也看得出是文章）
+    const posts = [
+      ['10.29', '腾讯网盘开启内测申请', '官网已开放入口，用户可直接前往提交。'],
+      ['10.25', '我们这里的一线天 ＿ 陕西', '一条缝里的天空，和穿堂而过的风。'],
+      ['10.23', '5s 的现场管理', '就是扔扔扔扔扔。'],
+    ];
+    const top = h * 0.145 + h * 0.07, rowH = h * 0.25;
+    const padL = w * 0.035, thumbW = h * 0.28, tx = padL + thumbW + w * 0.035;
+    posts.forEach(([date, title, desc], i) => {
+      const y = top + i * rowH;
+      const g = ctx.createLinearGradient(padL, y, padL + thumbW, y + h * 0.17);
+      g.addColorStop(0, '#26384c'); g.addColorStop(1, '#3d2f4c');
+      ctx.fillStyle = g; ctx.fillRect(padL, y, thumbW, h * 0.17);
+      ctx.fillStyle = '#6e7a88'; ctx.font = `${Math.round(h * 0.034)}px sans-serif`;
+      ctx.fillText(date, tx, y + h * 0.042);
+      ctx.fillStyle = '#e6ebf1'; ctx.font = `600 ${Math.round(h * 0.056)}px sans-serif`;
+      ctx.fillText(title, tx, y + h * 0.10);
+      ctx.fillStyle = '#8a95a3'; ctx.font = `${Math.round(h * 0.036)}px sans-serif`;
+      ctx.fillText(desc, tx, y + h * 0.152);
+    });
   };
   const monitorPaint = (ctx, w, h) => {
     ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, w, h);
