@@ -38,9 +38,14 @@ export function buildLoftStair(layer, materials) {
   for (const mesh of B.build(materials)) group.add(mesh);
 
   // 行走面：按踏面分档；踏面之间的缝按下一级算，走起来是连续的。
+  // lane 是这一跑楼梯的中线：只有 1 m 宽，引擎每帧把脚往中线收一点，人就不会
+  // 蹭着墙走过去（蹭墙时八向采样会落到墙里，一脚踩空就穿到楼面高度上）。
+  // 底端往过厅多探 0.35 m（仍是二层楼面高度），让身体的采样圈在楼梯口就够得着
+  // 踏步；顶端多探进洞口 0.2 m，与屋顶面接平。
+  const Z0 = S.z0 - 0.2, Z1 = S.z1 + 0.35;
   function heightAt(x, z) {
-    if (x < S.x0 || x > S.x1) return null;
-    if (z < S.z0 || z > S.z1) return null;
+    if (x < S.x0 || x >= S.x1) return null;
+    if (z < Z0 || z >= Z1) return null;
     const i = Math.floor((S.z1 - z) / run);
     if (i < 0) return S.bottom;
     return S.bottom + Math.min(S.steps, i + 1) * rise;
@@ -53,14 +58,17 @@ export function buildLoftStair(layer, materials) {
     group, foot, top, heightAt,
     levels(x, z, out) {
       const y = heightAt(x, z);
-      if (y !== null) out.push({ y, site: null, tread: true });
+      if (y !== null) out.push({ y, site: null, tread: true, lane: cx });
     },
-    // 二层 ↔ 屋顶的路线：到楼梯口、一路走上去、跨过洞口边缘踏上屋顶，再去目标点。
+    // 二层 ↔ 屋顶的路线：到楼梯口、一路走上去、从楼梯塔的北口出来，再去目标点。
+    // 塔的东西两面是墙（y 9..10），从洞口直接斜着走向东边的目标会撞墙，所以先
+    // 往北退出塔再横穿屋顶。
     route(ax, ay, az, bx, by, bz) {
       const up = by > ay + 0.5;
+      const gate = { x: cx, y: S.top, z: S.z0 - 2.4 };
       return up
-        ? [{ ...foot }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...top }, { x: bx, y: by, z: bz }]
-        : [{ ...top }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...foot }, { x: bx, y: by, z: bz }];
+        ? [{ ...foot }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...top }, gate, { x: bx, y: by, z: bz }]
+        : [gate, { ...top }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...foot }, { x: bx, y: by, z: bz }];
     },
   };
 }

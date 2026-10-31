@@ -76,6 +76,9 @@ export function createPlayer({ avatar, nav, grid = null, ground = null, onArrive
     const out = ground?.canStand(tx, tz, level);
     if (out && (!nav.canStand(tx, tz, level) || out.y > nav.heightAt(tx, tz) + 0.02)) {
       pos.x = tx; pos.z = tz; island = out.site; level = out.y; standing = out;
+      // On a stair narrower than the body, ease the feet onto its lane so the
+      // shoulders do not scrape the walls and no step is missed.
+      if (out.tread && out.lane !== undefined) pos.x += (out.lane - pos.x) * 0.5;
       return;
     }
     nav.move(pos, dx, dz); level = nav.heightAt(pos.x, pos.z); standing = null;

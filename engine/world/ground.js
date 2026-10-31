@@ -30,7 +30,7 @@ export function createGround(sources) {
           (Math.abs(rank - bestRank) <= .001 && Math.abs(l.y - prior.y) < Math.abs(best.y - prior.y))) best = l;
       } else if (!best || (!prior?.route || best.route !== prior.route) && (l.y > best.y + .002 || (Math.abs(l.y - best.y) <= .002 && l.tread))) best = l;
     }
-    return best && { y: best.y, site: best.site, tread: !!best.tread, route: best.route, index: best.index, travel: prior?.travel };
+    return best && { y: best.y, site: best.site, tread: !!best.tread, lane: best.lane, route: best.route, index: best.index, travel: prior?.travel };
   }
   // The surface the player would be on at (x, z) with their feet at `near`.
   const surfaceAt = (x, z, near, prior = null) => highest(x, z, l => l.y <= near + STEP && l.y >= near - DROP, true, prior);
@@ -49,6 +49,11 @@ export function createGround(sources) {
     if (!here) return null;
     function fits(candidate) {
       if (blocked(x, z, candidate)) return false;
+      // A stair's tread is the only surface across a run narrower than the body:
+      // sampling a ring around the feet would land in the walls either side and
+      // call a step the player is standing on unstandable. A tread that names a
+      // lane is such a stair, and the walker keeps to that lane.
+      if (candidate.tread && candidate.lane !== undefined) return true;
       const reference = prior?.guided ? { ...candidate, index: prior.index, expectedY: prior.expectedY, guided: true }
         : candidate.route ? { ...candidate, travel: null, support: true } : candidate;
       for (let a = 0; a < 8; a++) {

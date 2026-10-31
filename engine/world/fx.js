@@ -14,7 +14,7 @@ export function createContactShadows(obstacles, floorAt, upper = 4) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
   const texture = new THREE.CanvasTexture(c);
-  const list = obstacles.filter(o => (o.x1 - o.x0) < 7 && (o.z1 - o.z0) < 7);
+  const list = obstacles.filter(o => !o.noShadow && (o.x1 - o.x0) < 7 && (o.z1 - o.z0) < 7);
   const mesh = new THREE.InstancedMesh(
     new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: texture, color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
