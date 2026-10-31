@@ -51,6 +51,14 @@ const HUD = `
   <div id="crosshair" hidden></div>
   <div id="aim" hidden></div>
   <button id="prompt" hidden><kbd>F</kbd><i class="icon"></i><span></span></button>
+  <!-- Walking into a room can raise a dismissible hint; index.html pages carry
+       data-nudge / data-nudge-en, data-nudge-open and an optional note. -->
+  <aside id="nudge" hidden role="status" aria-live="polite">
+    <img class="nudge-icon" alt="">
+    <div class="nudge-body"><b></b><span></span></div>
+    <button class="nudge-go mc-button" type="button"></button>
+    <button class="nudge-close" type="button" aria-label="关闭提示" data-en-label="Dismiss">×</button>
+  </aside>
   <!-- Touch screens, flying by hand: Minecraft's pocket D-pad steers and the
        rocker climbs and descends (ui/flightpad.js). -->
   <div id="flightPad" hidden>

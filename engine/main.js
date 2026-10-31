@@ -439,6 +439,58 @@ async function boot() {
   }
   promptEl.addEventListener('click', () => { if (promptFor) useTarget(promptFor); });
 
+  // ---------- Room hints ----------
+  // A page may carry data-nudge (Chinese) / data-nudge-en, an optional note
+  // (data-nudge-note / -note-en), a button label (data-nudge-cta / -cta-en)
+  // and the page it opens (data-nudge-open, itself by default). Walking into
+  // range raises the card; × or the timeout silences it for this visit.
+  const nudgeEl = $('#nudge');
+  const nudgeIcon = nudgeEl.querySelector('.nudge-icon');
+  const nudgeTitle = nudgeEl.querySelector('.nudge-body b');
+  const nudgeNote = nudgeEl.querySelector('.nudge-body span');
+  const nudgeGo = nudgeEl.querySelector('.nudge-go');
+  const nudgeSeen = new Set();
+  const NUDGE_RANGE = 3.4;
+  let nudgeFor = null, nudgeTimer = 0;
+
+  function nudgeTarget() {
+    let best = null, bestD = NUDGE_RANGE;
+    for (const s of publicStations) {
+      const page = s.at && pageEl(s.id);
+      if (!page?.dataset.nudge) continue;
+      const d = targetDistance(s);
+      if (d < bestD && Math.abs((s.floor || 0) - Math.max(0, player.floorY)) < 1.5) { best = s; bestD = d; }
+    }
+    return best;
+  }
+  function paintNudge(s) {
+    const page = pageEl(s.id);
+    nudgeIcon.src = icon(s.icon || s.id).url;
+    nudgeTitle.textContent = t(page.dataset.nudge, page.dataset.nudgeEn || page.dataset.nudge);
+    const note = page.dataset.nudgeNote || '';
+    nudgeNote.hidden = !note;
+    if (note) nudgeNote.textContent = t(note, page.dataset.nudgeNoteEn || note);
+    nudgeGo.textContent = t(page.dataset.nudgeCta || '去看看', page.dataset.nudgeCtaEn || 'Take a look');
+    nudgeGo.onclick = () => { hideNudge(true); useTarget(page.dataset.nudgeOpen || s.id); };
+  }
+  function hideNudge(remember) {
+    clearTimeout(nudgeTimer);
+    if (remember && nudgeFor) nudgeSeen.add(nudgeFor);
+    nudgeFor = null; nudgeEl.hidden = true;
+  }
+  function updateNudge() {
+    // Opening the room's own page counts as having read the hint.
+    if (panel.open) { if (nudgeFor) hideNudge(nudgeFor === openStation); return; }
+    const s = rig.introActive || portal?.busy ? null : nudgeTarget();
+    if (!s || nudgeSeen.has(s.id)) { if (nudgeFor) hideNudge(false); return; }
+    if (nudgeFor === s.id) return;
+    nudgeFor = s.id; paintNudge(s); nudgeEl.hidden = false;
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(() => hideNudge(true), 9000);
+  }
+  nudgeEl.querySelector('.nudge-close').addEventListener('click', () => hideNudge(true));
+  onLang(() => { const s = nudgeFor && publicStations.find(st => st.id === nudgeFor); if (s) paintNudge(s); });
+
   // ---------- Hotbar ----------
   const hotbar = $('#hotbar');
   const tooltip = $('#tooltip');
@@ -966,7 +1018,7 @@ async function boot() {
       if (st && targetDistance(st) > 3.5) closePage();
     }
     promptClock += elapsed;
-    if (promptClock >= 0.1) { promptClock = 0; updatePrompt(); }
+    if (promptClock >= 0.1) { promptClock = 0; updatePrompt(); updateNudge(); }
 
     if (!rig.introActive && !hudShown) { hudShown = true; $('#hud').hidden = false; }
     const still = player.gazing && rig.gazeAmount >= 1 && !paused && !phone.up;
