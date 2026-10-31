@@ -40,12 +40,12 @@
   <h1 class="plain-title">姜小小的家</h1>
 
   <article class="page" data-station="about"
-    data-nudge="电视里放的是我的另一个博客"
-    data-nudge-en="The TV is showing my other blog"
-    data-nudge-note="100412.xyz · 北方的博客"
-    data-nudge-note-en="100412.xyz · my other blog"
-    data-nudge-cta="打开看看" data-nudge-cta-en="Take a look"
-    data-nudge-open="works">
+    data-nudge="电视那面墙现在是个点歌台"
+    data-nudge-en="The TV wall is a jukebox now"
+    data-nudge-note="绕过楼梯，点一首就放"
+    data-nudge-note-en="Round the stair — pick a song"
+    data-nudge-cta="去点歌" data-nudge-cta-en="Pick a song"
+    data-nudge-open="jukebox">
     <h2 data-zh="关于">About</h2>
     <div class="about">
       <div class="about-text" lang="en">
@@ -131,6 +131,24 @@
     <div class="about">
       <div class="about-text" lang="en"><p>The spare room — for guests, or as a studio.</p></div>
       <div class="about-text" lang="zh-CN"><p>次卧，留给客人，或当作工作室。</p></div>
+    </div>
+  </article>
+
+  <article class="page" data-station="jukebox">
+    <h2 data-zh="点歌台">Jukebox</h2>
+    <div class="jukebox">
+      <div class="juke-now">
+        <b data-juke-title>Nothing playing</b>
+        <span data-juke-artist>Pick a song and the room starts</span>
+        <i data-juke-time>0:00 / --:--</i>
+      </div>
+      <div class="juke-keys">
+        <button type="button" data-juke="prev" aria-label="Previous">&#9664;&#9664;</button>
+        <button type="button" data-juke="toggle"><span data-juke-state>Play</span></button>
+        <button type="button" data-juke="next" aria-label="Next">&#9654;&#9654;</button>
+      </div>
+      <ol class="juke-list" data-juke-list></ol>
+      <p class="juke-tip" data-zh="歌单写在 world/playlist.js 里，一行一首；src 填音频直链就能放。">The list lives in world/playlist.js, one line per song — fill in src with a direct audio link.</p>
     </div>
   </article>
 

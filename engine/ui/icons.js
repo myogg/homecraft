@@ -390,6 +390,24 @@ const ART = {
     '................',
     '................',
   ],
+  note: [
+    '................',
+    '................',
+    '........kkkkkk..',
+    '........kwwwwk..',
+    '........kwwwwk..',
+    '........kwwwk...',
+    '........kwwwk...',
+    '........kwwwk...',
+    '........kwwwk...',
+    '..kkkk..kwwwk...',
+    '.kwwwwk.kwwwk...',
+    'kwwwwwwkkwwwk...',
+    'kwwwwwwwkwwwk...',
+    '.kwwwwwwkkkk....',
+    '..kkkkkk........',
+    '................',
+  ],
 };
 
 // Weather symbols are drawn at 32×32 from real shapes (a rayed sun, a crescent

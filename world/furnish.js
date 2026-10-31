@@ -6,6 +6,7 @@ import { canvasTexture } from '@engine/world/textures.js';
 import { HOUSE, LOFT, STAIRS, ROOF_LIFT, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { buildFloorPlants } from './plants.js';
 import { shelfBooks, shelfFrames } from './books.js';
+import { PLAYLIST } from './playlist.js';
 
 const L = {
   wood: { tex: 'wood_panel' }, floor: { tex: 'greige_floor' },
@@ -41,17 +42,20 @@ export function furnish({ layer }) {
   const ly = LOFT.y;
   // 床（二层用）：床头朝北（-z），两侧床头柜 + 暖光灯；障碍 level 1。
   // stands 可只给一侧，窄房间靠墙放床时不穿墙。
+  // 障碍只圈床垫本体（3.4×4.15）——原来按「床 + 两个柜」的 5.2 m 宽整块圈，
+  // 次卧那张正好把门口的落脚格子吃掉了，人走到门口就被挡回去。
   const bed = (x, y, z, stands = [-2.1, 2.1]) => {
     B.box(x, y, z, 3.2, 0.3, 4, L.linen);                    // 床垫
     B.box(x, y + 0.3, z - 1.4, 3.0, 0.5, 1.2, L.paint(0xf2efe9)); // 被褥
     B.box(x, y + 0.8, z - 1.6, 2.6, 0.25, 0.8, L.paint(0xe7e2d8)); // 枕头
     B.box(x, y, z - 1.9, 3.4, 1.4, 0.25, L.panel);           // 床背（床头一侧）
-    foot(x, z, 5.2, 4.4, 1);
+    foot(x, z, 3.4, 4.15, 1);
     hot('bed', x, y + 0.1, z, 3.2, 0.9, 3.9);                // 点床就能躺下睡
     for (const sx of stands) {
       B.box(x + sx, y, z - 1.4, 0.8, 0.6, 0.8, L.panel);     // 床头柜
       B.box(x + sx, y + 0.6, z - 1.4, 0.86, 0.05, 0.86, L.marble);
       B.box(x + sx, y + 0.65, z - 1.4, 0.2, 0.3, 0.2, L.light(0xffdfa8));
+      foot(x + sx, z - 1.4, 0.95, 0.95, 1);
     }
     bake('bed-lamp', x, y + 1, z - 1.4, 1.2, 4, [0, -1, 0]);
   };
@@ -82,37 +86,103 @@ export function furnish({ layer }) {
     foot(cx, cz, w + 0.25, d + 0.25, 1);
   };
 
-  // 屏幕画面：电视（100412.xyz 北方的博客 · 文章列表）与显示器（代码雨）。
-  const tvPaint = (ctx, w, h) => {
-    ctx.fillStyle = '#111820'; ctx.fillRect(0, 0, w, h);
-    // 顶栏：站点名 + 导航
-    ctx.fillStyle = '#18212c'; ctx.fillRect(0, 0, w, h * 0.145);
-    ctx.fillStyle = '#eef2f6'; ctx.font = `600 ${Math.round(h * 0.062)}px sans-serif`;
-    ctx.fillText('北方的博客', w * 0.035, h * 0.098);
-    ctx.font = `${Math.round(h * 0.038)}px sans-serif`; ctx.fillStyle = '#7f8b99';
-    ['首页', '归档', '关于'].forEach((s, i) => ctx.fillText(s, w * (0.655 + i * 0.105), h * 0.094));
-    ctx.fillStyle = '#26313e'; ctx.fillRect(0, h * 0.145, w, Math.max(1, h * 0.005));
-    // 文章列表：缩略色块 + 日期 + 标题 + 摘要（只放 3 条，字号放大，远处也看得出是文章）
-    const posts = [
-      ['10.29', '腾讯网盘开启内测申请', '官网已开放入口，用户可直接前往提交。'],
-      ['10.25', '我们这里的一线天 ＿ 陕西', '一条缝里的天空，和穿堂而过的风。'],
-      ['10.23', '5s 的现场管理', '就是扔扔扔扔扔。'],
-    ];
-    const top = h * 0.145 + h * 0.07, rowH = h * 0.25;
-    const padL = w * 0.035, thumbW = h * 0.28, tx = padL + thumbW + w * 0.035;
-    posts.forEach(([date, title, desc], i) => {
-      const y = top + i * rowH;
-      const g = ctx.createLinearGradient(padL, y, padL + thumbW, y + h * 0.17);
-      g.addColorStop(0, '#26384c'); g.addColorStop(1, '#3d2f4c');
-      ctx.fillStyle = g; ctx.fillRect(padL, y, thumbW, h * 0.17);
-      ctx.fillStyle = '#6e7a88'; ctx.font = `${Math.round(h * 0.034)}px sans-serif`;
-      ctx.fillText(date, tx, y + h * 0.042);
-      ctx.fillStyle = '#e6ebf1'; ctx.font = `600 ${Math.round(h * 0.056)}px sans-serif`;
-      ctx.fillText(title, tx, y + h * 0.10);
-      ctx.fillStyle = '#8a95a3'; ctx.font = `${Math.round(h * 0.036)}px sans-serif`;
-      ctx.fillText(desc, tx, y + h * 0.152);
-    });
+  // 屏幕画面：客厅西墙的大电视 + 墙边点歌机的触屏。两块屏都画在 canvas 上，
+  // 平时列歌单，播放时换成「正在播放」——由 world/jukebox.js 播歌时回写。
+  const TV_W = 680, TV_H = 390, KIOSK_W = 240, KIOSK_H = 340;
+  const clock = s => {
+    if (!Number.isFinite(s) || s < 0) s = 0;
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   };
+  const fit = (text, base, max) => {
+    const cjk = /[\u4e00-\u9fff]/.test(text);
+    return Math.max(18, Math.min(base, Math.floor(max / Math.max(1, text.length * (cjk ? 1 : 0.58)))));
+  };
+  function drawTv(ctx, w, h, state) {
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#14212f'); bg.addColorStop(1, '#080d13');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    // 顶栏：名字 + 位置
+    ctx.fillStyle = '#1c2b3b'; ctx.fillRect(0, 0, w, 66);
+    ctx.fillStyle = '#ffcf8a'; ctx.font = '600 30px sans-serif'; ctx.fillText('点歌台', 28, 36);
+    ctx.fillStyle = '#6f7f91'; ctx.font = '600 15px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('JUKEBOX · 客厅西墙', w - 28, 37); ctx.textAlign = 'left';
+
+    if (state && state.title) {
+      // 正在播放：歌名 + 歌手 + 跳动的频谱 + 进度条
+      ctx.fillStyle = '#7d8ea1'; ctx.font = '600 17px sans-serif'; ctx.fillText('正在播放', 28, 96);
+      const size = fit(state.title, 56, w - 120);
+      ctx.fillStyle = '#f4f7fb'; ctx.font = `600 ${size}px sans-serif`; ctx.textAlign = 'center';
+      ctx.fillText(state.title, w / 2, 176);
+      ctx.fillStyle = '#9fb0c3'; ctx.font = '22px sans-serif';
+      ctx.fillText(state.artist || '—', w / 2, 226);
+      const bars = 46, bw = (w - 96) / bars;
+      for (let i = 0; i < bars; i++) {
+        const p = state.playing ? state.progress * 34 + i * 0.71 : i * 0.13;
+        const v = 0.18 + 0.82 * Math.abs(Math.sin(p) * Math.cos(p * 0.37 + i));
+        const bh = Math.max(4, v * 62);
+        ctx.fillStyle = i % 2 ? '#3f7fbf' : '#ffcf8a';
+        ctx.fillRect(48 + i * bw, 316 - bh, bw * 0.6, bh);
+      }
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#5f6f80'; ctx.font = '15px sans-serif';
+      ctx.fillText(state.playing ? '正在播放 · 点歌机上可以换歌' : '暂停中 · 点 ▶ 继续', w / 2, 372);
+      ctx.textAlign = 'left';
+    } else {
+      ctx.fillStyle = '#7d8ea1'; ctx.font = '18px sans-serif';
+      ctx.fillText(`共 ${PLAYLIST.length} 首 · 点一首，客厅就响了`, 28, 100);
+      const rows = PLAYLIST.slice(0, 4);
+      rows.forEach((song, i) => {
+        const y = 142 + i * 52;
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.055)';
+        ctx.fillRect(20, y - 22, w - 40, 44);
+        ctx.fillStyle = '#55677a'; ctx.font = '600 17px sans-serif'; ctx.fillText(String(i + 1).padStart(2, '0'), 34, y);
+        ctx.fillStyle = '#e8eef6'; ctx.font = '600 24px sans-serif';
+        ctx.fillText(song.title, 78, y);
+        ctx.fillStyle = '#8296a9'; ctx.font = '16px sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText(song.artist || '', w - 34, y); ctx.textAlign = 'left';
+      });
+      if (PLAYLIST.length > 4) {
+        ctx.fillStyle = '#55677a'; ctx.font = '15px sans-serif';
+        ctx.fillText(`还有 ${PLAYLIST.length - 4} 首，在点歌机上看`, 78, 350);
+      }
+      ctx.fillStyle = 'rgba(255,207,138,0.9)'; ctx.font = '600 16px sans-serif';
+      ctx.fillText('走到墙边的点歌机，点一首 →', 28, 372);
+    }
+  }
+  function drawKiosk(ctx, w, h, state) {
+    ctx.fillStyle = '#0b1119'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#1b2a3a'; ctx.fillRect(0, 0, w, 54);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffcf8a'; ctx.font = '600 20px sans-serif'; ctx.fillText('点歌台', w / 2, 28);
+    if (state && state.title) {
+      ctx.fillStyle = '#7d8ea1'; ctx.font = '12px sans-serif'; ctx.fillText('正在播放', w / 2, 82);
+      ctx.fillStyle = '#f0f5fb'; ctx.font = `600 ${fit(state.title, 22, w - 30)}px sans-serif`;
+      ctx.fillText(state.title.length > 8 ? state.title.slice(0, 8) + '…' : state.title, w / 2, 112);
+      ctx.fillStyle = '#9fb0c3'; ctx.font = '12px sans-serif';
+      ctx.fillText(state.artist || '', w / 2, 140);
+      ctx.strokeStyle = '#33414f'; ctx.lineWidth = 2; ctx.strokeRect(24, 168, w - 48, 8);
+      ctx.fillStyle = '#ffcf8a'; ctx.fillRect(26, 170, (w - 52) * state.progress, 4);
+      ctx.fillStyle = '#6f7f91'; ctx.font = '11px sans-serif'; ctx.fillText(state.time, w / 2, 196);
+      ctx.fillStyle = '#4b5a69'; ctx.font = '11px sans-serif';
+      ctx.fillText(state.playing ? '触摸列表换歌' : '按 ▶ 继续', w / 2, h - 24);
+    } else {
+      ctx.fillStyle = '#7d8ea1'; ctx.font = '12px sans-serif'; ctx.fillText('点一首', w / 2, 82);
+      PLAYLIST.slice(0, 6).forEach((song, i) => {
+        const y = 116 + i * 34;
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)';
+        ctx.fillRect(14, y - 14, w - 28, 28);
+        ctx.fillStyle = '#54657a'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(String(i + 1).padStart(2, '0'), 22, y);
+        ctx.fillStyle = '#dfe7f0'; ctx.font = '13px sans-serif';
+        const t = song.title.length > 9 ? song.title.slice(0, 9) + '…' : song.title;
+        ctx.fillText(t, 44, y);
+        ctx.textAlign = 'center';
+      });
+      ctx.fillStyle = '#4b5a69'; ctx.font = '11px sans-serif';
+      ctx.fillText('按 F 或点它，打开歌单', w / 2, h - 24);
+    }
+  }
   const monitorPaint = (ctx, w, h) => {
     ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, w, h);
     const colors = ['#79c0ff', '#7ee787', '#ffa657', '#d2a8ff', '#ff7b72'];
@@ -135,11 +205,75 @@ export function furnish({ layer }) {
   for (const z of [sofaZ - 1.7, sofaZ + 1.7]) B.box(sofaX, 0.08, z, 1, 0.65, 0.2, L.paint(0x1c1e20));
   foot(sofaX, sofaZ, 1.2, 4.2); hot('about', sofaX, 0, sofaZ, 1.4, 1.2, 4.2);
   B.box(sofaX - 0.6, 0, sofaZ, 1.4, 0.45, 2.2, L.marble); foot(sofaX - 0.6, sofaZ, 1.5, 2.3); // 茶几
-  // 电视（西墙，画面朝东）。
-  B.box(-11.06, 1.1, sofaZ, 0.1, 2.3, 3.6, L.steel);       // 墙托
-  B.box(-11.0, 0.9, sofaZ, 0.06, 2.7, 4, L.paint(0x0a0a0a));
-  plane(3.4, 1.95, paint(680, 390, tvPaint), -10.9, 2.1, sofaZ, Math.PI / 2, true);
-  bake('tv', -10.7, 2.1, sofaZ, 1.4, 6, [1, -0.4, 0]);
+  // ===== 一层：电视角（楼梯西侧、卫生间北侧）→ 点歌台 =====
+  // 这里是楼梯和卫生间夹出来的一块口袋空间：进门要绕到楼梯南端那个口子才进得来，
+  // 原来只挂了台电视、铺了块地毯，走进去像个死角。现在整块做成点歌台——电视当
+  // 大屏列歌单，墙下矮柜摆两座音箱，中间立一台点歌机，靠楼梯墙一条长凳。
+  const tvZ = sofaZ;
+  const tvTex = paint(TV_W, TV_H, (c, w, h) => drawTv(c, w, h, null));
+  // 电视背后的整片深色墙板：西墙是玻璃的，不衬一层，电视就像浮在院子前面。
+  B.box(-11.96, 0.5, tvZ, 0.07, 3.05, 4.4, L.paint(0x1c2024));
+  B.box(-11.06, 1.1, tvZ, 0.1, 2.3, 3.6, L.steel);          // 墙托
+  B.box(-11.0, 0.9, tvZ, 0.06, 2.7, 4, L.paint(0x0a0a0a));  // 屏体
+  plane(3.4, 1.95, tvTex, -10.9, 2.1, tvZ, Math.PI / 2, true);
+  bake('tv', -10.7, 2.1, tvZ, 1.4, 6, [1, -0.4, 0]);
+  // 屏下矮柜：功放、唱片、随手放的线，都在这一层。
+  B.box(-11.5, 0, tvZ, 0.58, 0.44, 3.3, L.wood);
+  B.box(-11.5, 0.44, tvZ, 0.62, 0.05, 3.4, L.marble);
+  for (const dz of [-0.9, 0.9]) B.box(-11.2, 0.08, tvZ + dz, 0.012, 0.28, 0.86, L.paint(0x453a2e));
+  B.box(-11.32, 0.49, tvZ + 0.35, 0.28, 0.14, 0.9, L.paint(0x14171a));   // 功放
+  B.box(-11.32, 0.63, tvZ + 0.35, 0.24, 0.015, 0.7, L.paint(0x3b4349));
+  foot(-11.5, tvZ, 0.7, 3.45);
+  // 两座落地音箱，紧贴墙站在矮柜两侧。
+  for (const dz of [-2.45, 2.45]) {
+    const sz = tvZ + dz;
+    B.box(-11.32, 0, sz, 0.34, 1.1, 0.3, L.paint(0x14171a));
+    B.box(-11.14, 0.08, sz, 0.02, 0.32, 0.22, L.paint(0x333a40));
+    B.box(-11.13, 0.6, sz, 0.02, 0.3, 0.2, L.paint(0x22282d));
+    B.box(-11.13, 0.98, sz, 0.02, 0.1, 0.1, L.paint(0x9a7649));
+    foot(-11.32, sz, 0.42, 0.4);
+  }
+  // 点歌机：钢立柱 + 一块触屏，背靠南墙、面朝屋里，站在房间中间就能点。
+  const kx = -9.0, kz = 5.32;
+  const kioskTex = paint(KIOSK_W, KIOSK_H, (c, w, h) => drawKiosk(c, w, h, null));
+  B.box(kx, 0, kz, 0.44, 0.05, 0.32, L.steel);              // 底座
+  B.box(kx, 0.05, kz, 0.08, 1.04, 0.08, L.steel);           // 立柱
+  B.box(kx, 1.09, kz, 0.5, 0.05, 0.16, L.steel);            // 屏托
+  B.box(kx, 0.96, kz - 0.02, 0.66, 0.94, 0.09, L.paint(0x14171a)); // 屏体
+  B.box(kx, 1.0, kz - 0.06, 0.58, 0.86, 0.02, L.paint(0x0b0f14));
+  plane(0.56, 0.78, kioskTex, kx, 1.43, kz - 0.075, Math.PI, true);
+  foot(kx, kz, 0.72, 0.5);
+  hot('jukebox', kx, 0.75, kz - 0.2, 1.1, 1.35, 1.0);
+  // 南墙的木格栅（吸音板）：深色底板 + 一条条浅木条，缝里是暗的，读得出是一排木条。
+  B.box(-9.0, 0, 5.98, 1.9, 2.62, 0.03, L.paint(0x2b231b));
+  for (let i = 0; i < 9; i++) B.box(-9.82 + i * 0.2, 0.04, 5.965, 0.15, 2.55, 0.035, L.panel);
+  B.box(-9.0, 2.58, 5.96, 1.9, 0.05, 0.05, L.steel);
+  B.box(-9.0, 0, 5.96, 1.9, 0.05, 0.05, L.steel);
+  // 靠楼梯墙的一条木长凳，面朝大屏。
+  B.box(-7.64, 0, 2.5, 0.72, 0.36, 2.4, L.panel);
+  B.box(-7.33, 0.36, 2.5, 0.11, 0.52, 2.4, L.panel);
+  for (const dz of [-0.6, 0.6]) B.box(-7.66, 0.36, 2.5 + dz, 0.66, 0.12, 0.62, L.linen);
+  foot(-7.6, 2.5, 0.95, 2.5);
+  pendant(-9.4, 2.9, 3.4);
+  // 门楣上的一块灯牌，夜里也认得出这是哪。
+  const signTex = paint(420, 96, (c, w, h) => {
+    c.fillStyle = '#12181f'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#f0b46a'; c.lineWidth = 4; c.strokeRect(7, 7, w - 14, h - 14);
+    c.fillStyle = '#ffcf8a'; c.font = '600 50px sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('点 歌 台', w / 2, h / 2 + 2);
+  });
+  B.box(-11.33, 3.72, tvZ, 0.06, 0.5, 1.9, L.paint(0x0f1318));
+  plane(1.8, 0.42, signTex, -11.29, 3.97, tvZ, Math.PI / 2, true);
+  bake('jukebox', -9.6, 2.6, 3.0, 1.7, 6.5, [0, -1, 0]);
+  // 两块屏由 main.js 在播歌时回写：{ title, artist, playing, progress, time }
+  surfaces.jukebox = {
+    draw(state) {
+      drawTv(tvTex.image.getContext('2d'), TV_W, TV_H, state);
+      drawKiosk(kioskTex.image.getContext('2d'), KIOSK_W, KIOSK_H, state);
+      tvTex.needsUpdate = true; kioskTex.needsUpdate = true;
+    },
+  };
   // 落地灯与吊灯（挪到沙发东侧，避开西侧楼梯）。
   B.box(1.5, 0, 5.4, 0.5, 0.055, 0.5, L.steel); B.box(1.5, 0.055, 5.4, 0.065, 1.72, 0.065, L.steel);
   B.box(1.5, 1.75, 5.4, 0.7, 0.25, 0.7, L.linen); B.box(1.5, 1.728, 5.4, 0.56, 0.025, 0.56, L.light(0xffe4ba));
@@ -227,7 +361,8 @@ export function furnish({ layer }) {
   // 两间卧室已封闭（南墙 z=-4，门朝楼梯北侧过厅），床都靠北墙、让开南墙门洞。
   // 主卧窄侧只留东侧床头柜（3.2 m 床 + 双柜放不进 9 m 净宽）。
   bed(-9.4, ly, -6.3, [2.1]);
-  bed(9, ly, -6.3);
+  // 次卧那张往东挪 0.4 m：门口 x[6,8) 要让出 1.8 m 的落脚带，进来才不用侧身。
+  bed(9.4, ly, -6.3, [2.1]);
   // 两间卧室各一组衣柜（贴北墙），障碍 level 1。
   for (const wx of [-10.5, 9.5]) {
     B.box(wx, ly, -9.2, 2.5, 2.4, 0.6, L.wood);
@@ -258,7 +393,7 @@ export function furnish({ layer }) {
   doorFrame(7, -3.5, 2);    // 次卧门（随楼梯井东移）
   doorFrame(0, -4.5, 2);    // 二层卫生间门（南墙 z=-5 格）
   // 二层吊灯：传的是「离地高度」，必须用楼面 + 2.9 m；直接传 ly 会让灯体落在地面上。
-  pendant(-9.4, -6.3, ly + 2.9); pendant(9, -6.3, ly + 2.9); pendant(0, -3, ly + 2.9);
+  pendant(-9.4, -6.3, ly + 2.9); pendant(9.4, -6.3, ly + 2.9); pendant(0, -3, ly + 2.9);
 
   // ===== 二层楼梯口：照片墙（主卧门两侧 + 门楣，正对楼梯上来的视线）=====
   // 三幅程序绘制的旅行照，深木框 + 白卡纸 + 小射灯；挂在楼梯正对的墙上，

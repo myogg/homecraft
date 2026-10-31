@@ -5,6 +5,7 @@ import { pageURL, mountEmbed } from './ui/embed.js';
 import * as THREE from 'three';
 import * as L from '@world/layout.js';
 import * as W from '@world/build.js';
+import { mountJukebox } from '@world/jukebox.js';
 import { config } from './config.js';
 import { createStage, detectQuality } from './world/stage.js';
 import { createWorld } from './world/world.js';
@@ -300,6 +301,9 @@ async function boot() {
   // A note sent from the mailbox's page raises the flag on the mailbox itself.
   const mailboxForm = createMailboxForm({ onSent: () => mailbox.raiseFlag() });
   const worldList = createWorldList({ onChoose(world) { closePage(); depart(world); } });
+  // The jukebox corner: the song list lives in world/playlist.js; while a song
+  // plays it writes 「now playing」 to the two screens on the TV wall.
+  const jukebox = mountJukebox(panel, state => world.surfaces.jukebox?.draw(state));
   // Standing at the portal, on foot: walk into it, seen from behind. From
   // anywhere else (the Dock, first person, flying), straight to loading.
   function depart(world) {
@@ -1155,7 +1159,7 @@ async function boot() {
   addEventListener('resize', () => stage.resize());
   // Handy when poking at it from the console.
   window.__home = {
-    stage, world, player, avatar, rig, nav, pets, cat, dog, extras, portal, worn, atmosphere, weatherFx, pool, weather, config, stats, setWeatherMode, getWeatherMode: () => weatherMode, setTimeMode, getTimeMode: () => timeMode, navigate, openPage, openPortal, go, setMood,
+    stage, world, player, avatar, rig, nav, pets, cat, dog, extras, portal, worn, atmosphere, weatherFx, pool, weather, config, stats, jukebox, setWeatherMode, getWeatherMode: () => weatherMode, setTimeMode, getTimeMode: () => timeMode, navigate, openPage, openPortal, go, setMood,
     teleport(x, z) { player.teleport(x, z); rig.recenter(player); },
     project(x, y, z) {
       const v = new THREE.Vector3(x, y, z).project(stage.camera);

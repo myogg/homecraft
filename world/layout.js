@@ -142,18 +142,21 @@ export const TREES = [[28, 22], [-28, 20], [30, -6], [-30, -8], [24, 27],
 export const STATIONS = [
   // 客厅：沙发与西墙电视之间。
   { id: 'about', name: '客厅', en: 'Living room', at: [-1, 3], look: [-11, 3] },
+  // 点歌台：楼梯西侧那块死角，电视墙下立着点歌机（进门绕过楼梯南端进来）。
+  { id: 'jukebox', name: '点歌台', en: 'Jukebox', icon: 'note', at: [-9.0, 4.2], look: [-9.0, 5.32] },
   // 书房：书桌前。
   { id: 'works', name: '书房', en: 'Study', at: [7, 3.8], look: [7, 1.5] },
   // 厨房：中岛旁。
   { id: 'kitchen', name: '厨房', en: 'Kitchen', at: [4.8, 8.8], look: [7, 6.5] },
-  // 一层卫生间（西南角，门朝北）。
-  { id: 'bath', name: '卫生间', en: 'Bathroom', at: [-10.5, 5.2], look: [-10.5, 8.5] },
+  // 一层卫生间（西南角，门朝北）。站位在门里一步——原来给的是 z=5.2，
+  // 那已经在隔墙北边的点歌台里了。
+  { id: 'bath', name: '卫生间', en: 'Bathroom', at: [-11.0, 7.2], look: [-10.4, 9.4] },
   // 衣帽间（卫生间东侧，门朝北）。
-  { id: 'cloak', name: '衣帽间', en: 'Cloakroom', at: [-7.5, 5.2], look: [-7.5, 8.5] },
+  { id: 'cloak', name: '衣帽间', en: 'Cloakroom', at: [-6.7, 8.5], look: [-8.7, 8.5] },
   // 二层主卧（卧室内，门内一步；床已靠北墙，x=-9.4 z=-6.3）。
   { id: 'bedroom', name: '主卧', en: 'Bedroom', at: [-5, -5.2], look: [-9.4, -6.3], floor: LOFT.y },
   // 二层次卧（同理，床位 x=9 z=-6.3）。
-  { id: 'bedroom2', name: '次卧', en: 'Second bedroom', at: [5, -5.2], look: [9, -6.3], floor: LOFT.y },
+  { id: 'bedroom2', name: '次卧', en: 'Second bedroom', at: [5.4, -5.2], look: [9.4, -6.3], floor: LOFT.y },
   // 观景台：先到东南角的电梯口，进轿厢后按 W 直上顶层（顶层按 S 下来）。
   { id: 'deck', name: '观景台', en: 'Observation deck', at: [15.95, 9], look: [13, 9],
     show: [[22, 15, 26], [0, 9.5, 0]], showPortrait: [[34, 24, 38], [0, 9.5, 0]] },
