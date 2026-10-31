@@ -23,7 +23,7 @@ export function build({ grid, layer, materials, stage }) {
   const openings = buildOpenings(layer);
   const roofAccess = buildRoofAccess(layer, materials);
   stage.scene.add(roofAccess.group);
-  const loftStair = buildLoftStair(layer, materials);
+  const loftStair = buildLoftStair(layer, materials, furn.lighting);
   stage.scene.add(loftStair.group);
   return {
     batches: { ...furn.batches, stairs: stairs.batch, openings },

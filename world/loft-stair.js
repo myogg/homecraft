@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
 import { LOFT_STAIR } from './layout.js';
 
-export function buildLoftStair(layer, materials) {
+export function buildLoftStair(layer, materials, lighting = []) {
   const S = LOFT_STAIR;
   const group = new THREE.Group(); group.name = 'loft-stair';
   const B = new BoxBatch(layer);
@@ -22,8 +22,8 @@ export function buildLoftStair(layer, materials) {
     // 实心踏步（钢芯 + 木面板），楼梯下方看不到空腔。
     B.box(cx, S.bottom, z, w - 0.16, top - S.bottom - 0.05, run, steel);
     B.box(cx, top - 0.05, z, w - 0.08, 0.05, run, floor);
-    // 踏面前缘一条暖光灯带，夜里也能看清台阶。
-    B.box(cx, top - 0.1, z + run / 2 + 0.012, w - 0.42, 0.026, 0.02, light);
+    // 踏面前缘一条暖光灯带，夜里也能看清台阶（平铺在板面上一指宽）。
+    B.box(cx, top - 0.004, z + run / 2 - 0.05, w - 0.3, 0.02, 0.1, light);
   }
   // 东侧一道细钢扶手（楼梯只有 1 m 宽，西侧是卫生间东墙）；最上面 1 m 伸出屋顶当护栏。
   const railTop = S.top + 0.95, len = Math.hypot(S.z1 - S.z0, S.top - S.bottom);
@@ -36,6 +36,17 @@ export function buildLoftStair(layer, materials) {
   B.box(S.x1 - 0.09, S.top, S.z0 - 0.35, 0.04, 0.95, 0.04, steel);
 
   for (const mesh of B.build(materials)) group.add(mesh);
+
+  // 梯井只有 1 m 宽、两边都是墙，屋里那几盏吊灯照不进来：沿梯段点四盏暖光，
+  // 照亮踏步，别让楼梯在暗处看着像墙上的一个黑洞。
+  for (let i = 0; i < 4; i++) {
+    const t = (i + 0.5) / 4;
+    lighting.push({
+      id: 'loft-stair',
+      position: [cx, S.bottom + t * (S.top - S.bottom) + 1.2, S.z1 - t * (S.z1 - S.z0)],
+      power: 2.4, radius: 5, direction: [0, -1, 0],
+    });
+  }
 
   // 行走面：按踏面分档；踏面之间的缝按下一级算，走起来是连续的。
   // lane 是这一跑楼梯的中线：只有 1 m 宽，引擎每帧把脚往中线收一点，人就不会
