@@ -5,12 +5,12 @@ import { BoxBatch } from '@engine/world/blocks.js';
 import { canvasTexture } from '@engine/world/textures.js';
 import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { buildFloorPlants } from './plants.js';
+import { shelfBooks, shelfFrames } from './books.js';
 
 const L = {
   wood: { tex: 'wood_panel' }, floor: { tex: 'greige_floor' },
   panel: { tex: 'wood_panel' }, marble: { tex: 'prada_marble' },
   steel: { tex: 'steel' }, plaster: { tex: 'plaster' }, linen: { tex: 'linen' },
-  books: { tex: 'bookshelf', top: 'wood_panel' },
   paint: tint => ({ tex: 'paint', tint }),
   light: (tint, emissive = 1) => ({ tex: 'paint', tint, emissive }),
 };
@@ -148,9 +148,12 @@ export function furnish({ layer }) {
   deskComp(-10, 0.9, 0); foot(-10, 0.9, 2.5, 1);
 
   // ===== 一层：书房（东南，x[2,12] z[0,4]）=====
-  B.box(11.66, 0, 2, 0.45, 3.4, 3.6, L.books);             // 东墙通顶书架
+  // 东墙通顶书架：木框架 + 一层层真书（书脊、书名条、斜靠和横放的都是独立方块）。
+  const shelf = shelfFrames({ face: 11.54, back: 11.96, cz: 2, width: 3.6, height: 3.4 });
+  for (const f of shelf.frames) B.box(f.x, f.y, f.z, f.w, f.h, f.d, L.panel);
   foot(11.66, 2, 0.55, 3.7);
-  for (let i = 0; i < 7; i++) B.box(11.58, 0.4 + i * 0.42, 2, 0.22, 0.04, 3.4, L.wood); // 隔板
+  for (const b of shelfBooks({ face: 11.54, z0: shelf.z0, z1: shelf.z1, shelves: shelf.shelves, seed: 2024 }))
+    B.box(b.x, b.y, b.z, b.w, b.h, b.d, L.paint(b.tint), { rx: b.rx || 0, shadow: false });
   // 书房：长桌 + 多屏拼接（3×2 显示器墙，画面朝南）+ 多台主机 + 椅。
   B.at(7, 0, 1.5, 0, () => {
     B.box(0, 1.05, 0, 5.4, 0.08, 1.3, L.panel);              // 桌面
