@@ -260,8 +260,9 @@ export function furnish({ layer }) {
   // 二层吊灯：传的是「离地高度」，必须用楼面 + 2.9 m；直接传 ly 会让灯体落在地面上。
   pendant(-9.4, -6.3, ly + 2.9); pendant(9, -6.3, ly + 2.9); pendant(0, -3, ly + 2.9);
 
-  // ===== 二层过厅：照片墙（次卧南墙外侧，朝过厅）=====
-  // 三幅程序绘制的旅行照，深木框 + 白卡纸，挂在过厅那面主要墙面上（避开次卧门）。
+  // ===== 二层楼梯口：照片墙（主卧门两侧 + 门楣，正对楼梯上来的视线）=====
+  // 三幅程序绘制的旅行照，深木框 + 白卡纸 + 小射灯；挂在楼梯正对的墙上，
+  // 一上二楼就看见。走廊东端那面墙太侧，撤掉了。
   const photoSea = (ctx, w, h) => {
     const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
     sky.addColorStop(0, '#2c3a5c'); sky.addColorStop(0.55, '#a95f45'); sky.addColorStop(1, '#f2a660');
@@ -319,10 +320,19 @@ export function furnish({ layer }) {
     B.box(cx, cy - h / 2 - 0.07, -2.975, w + 0.14, h + 0.13, 0.05, L.panel);            // 深木框
     B.box(cx, cy - h / 2 - 0.03, -2.944, w + 0.07, h + 0.07, 0.026, L.paint(0xf6f1e6)); // 白卡纸
     plane(w, h, paint(Math.round(w * 320), Math.round(h * 320), fn), cx, cy, -2.928, 0);
+    return cy + h / 2;                                                                 // 画框顶，给射灯定位
   };
-  photoWall(5.5, 5.68, 0.78, 1.02, photoCat);
-  photoWall(9.3, 5.72, 1.68, 1.02, photoSea);
-  photoWall(11.28, 5.68, 0.78, 1.02, photoHill);
+  // 小射灯：一根从墙里伸出的钢杆 + 铜灯罩，暖光打在画心上（夜里也亮）。
+  const pictureLight = (cx, top) => {
+    B.box(cx, top + 0.14, -2.90, 0.03, 0.03, 0.24, L.steel);
+    B.box(cx, top + 0.10, -2.70, 0.14, 0.08, 0.14, L.paint(0x9a7649));
+    B.box(cx, top + 0.08, -2.70, 0.10, 0.02, 0.10, L.light(0xffe0b0));
+    bake('photo', cx, top - 0.12, -2.60, 0.7, 2.0, [0, -0.6, -1]);
+  };
+  // 楼梯口正对主卧门：门两侧各一幅竖画、门楣一幅横幅——上到二楼第一眼就是这面墙。
+  pictureLight(-6.54, photoWall(-6.54, 5.5, 0.78, 1.42, photoCat));
+  pictureLight(-3.46, photoWall(-3.46, 5.5, 0.78, 1.42, photoHill));
+  photoWall(-5, 7.42, 1.7, 0.56, photoSea);
 
   // ===== 屋顶观景台（y = ROOF_LIFT.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
   const dy = ROOF_LIFT.top;
