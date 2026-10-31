@@ -171,6 +171,15 @@ async function boot() {
   // The pool's water, seen from above or from inside it, with its bubbles;
   // loaded only for a world that has one.
   const pool = POOL ? (await import('./world/pool.js')).createPool({ stage, world, shelter: weatherFx.shelter, quality }) : NO_POOL;
+  // The door plate counts visitors (Pages Function + KV). Quietly stays at
+  // "welcome home" when the endpoint or the KV binding is missing.
+  const nameplate = world.surfaces.nameplate;
+  if (nameplate && config.visits?.endpoint) {
+    fetch(config.visits.endpoint, { method: 'POST', headers: { accept: 'application/json' } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.ok && Number.isFinite(d.total)) nameplate.draw(d.total, d.today); })
+      .catch(() => {});
+  }
   // A TV (surfaces.tvScreen) shows a small 3D city at night, drawn into a render target.
   const screen = world.surfaces.tvScreen;
   const aerial = screen ? (await import('./world/aerial.js')).createAerial(stage.renderer, quality) : null;

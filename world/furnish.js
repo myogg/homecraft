@@ -321,6 +321,27 @@ export function furnish({ layer }) {
   beachUmbrella(-5.5, 23); lounger(-7.2, 23, 0); lounger(-3.8, 23, 0); sideTable(-5.5, 24.8);
   bake('pool-deck', (POOL.x0 + POOL.x1) / 2, 1.5, (POOL.z0 + POOL.z1) / 2, 3, 16, [0, -1, 0]);
 
+  // ===== 室外：门口门牌（访客计数，数字由 main.js 取到后重绘）=====
+  const plateW = 512, plateH = 166;
+  const plateCv = document.createElement('canvas');
+  plateCv.width = plateW; plateCv.height = plateH;
+  const plateCtx = plateCv.getContext('2d');
+  const plateTex = new THREE.CanvasTexture(plateCv);
+  plateTex.colorSpace = THREE.SRGBColorSpace;
+  plateTex.anisotropy = 8;
+  const drawPlate = (total, today) => {
+    plateCtx.fillStyle = '#3b2a1d'; plateCtx.fillRect(0, 0, plateW, plateH);
+    plateCtx.strokeStyle = '#9a7649'; plateCtx.lineWidth = 7; plateCtx.strokeRect(11, 11, plateW - 22, plateH - 22);
+    plateCtx.textAlign = 'center';
+    plateCtx.fillStyle = '#f4ead6'; plateCtx.font = '600 64px sans-serif';
+    plateCtx.fillText('姜小小的家', plateW / 2, 82);
+    plateCtx.fillStyle = '#c8b499'; plateCtx.font = '30px sans-serif';
+    plateCtx.fillText(total == null ? '欢迎回家' : `第 ${total} 位访客 · 今天 ${today} 人`, plateW / 2, 132);
+    plateTex.needsUpdate = true;
+  };
+  drawPlate(null);
+  surfaces.nameplate = { mesh: plane(1.9, 0.62, plateTex, 0, 3.35, HOUSE.z1 + 1.03, 0, true), draw: drawPlate };
+
   // ===== 室外：信箱；楼梯踏步灯 =====
   B.box(MAILBOX.x, 0, MAILBOX.z, 0.5, 1.1, 0.4, L.paint(0x33405a)); B.box(MAILBOX.x, 1.1, MAILBOX.z, 0.55, 0.18, 0.45, L.paint(0x44546f)); foot(MAILBOX.x, MAILBOX.z, 0.6, 0.5);
   for (let i = 0; i < 8; i++) bake('stair-glow', -5, 0.5 + i * 0.45, STAIRS.z1 - 0.5 - i, 0.3, 2.2, [0, -1, 1]);

@@ -11,5 +11,8 @@ export default {
   // 走进书房/客厅会弹出提示卡直达，按 F 也仍可打开对应页面。
   dock: ['works', 'kitchen', 'bedroom', 'deck', 'mailbox', 'phone'],
   mailbox: { endpoint: '', email: 'xxjss@hotmail.com', turnstileSitekey: '' },
+  // 门口门牌上的访客计数：走 Pages Function /api/visit（需在 Pages 里绑定 KV，变量名 VISITS）。
+  // 置为 null 就只显示「欢迎回家」。
+  visits: { endpoint: '/api/visit' },
   badge: true,
 };
