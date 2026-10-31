@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
 import { canvasTexture } from '@engine/world/textures.js';
-import { HOUSE, LOFT, STAIRS, ROOF_LADDER, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ROOF_LIFT, MAILBOX, POOL, POOL_LADDER, POOL_LAMPS } from './layout.js';
 import { buildFloorPlants } from './plants.js';
 import { shelfBooks, shelfFrames } from './books.js';
 
@@ -324,8 +324,8 @@ export function furnish({ layer }) {
   photoWall(9.3, 5.72, 1.68, 1.02, photoSea);
   photoWall(11.28, 5.68, 0.78, 1.02, photoHill);
 
-  // ===== 屋顶观景台（y = ROOF_LADDER.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
-  const dy = ROOF_LADDER.top;
+  // ===== 屋顶观景台（y = ROOF_LIFT.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
+  const dy = ROOF_LIFT.top;
   const stool = (x, z) => {
     B.at(x, dy, z, 0, () => { B.box(0, 0.05, 0, 0.5, 0.06, 0.5, L.steel); for (const dx of [-0.2, 0.2]) for (const dz of [-0.2, 0.2]) B.box(dx, 0, dz, 0.05, 0.45, 0.05, L.steel); B.box(0, 0.5, 0, 0.46, 0.06, 0.46, L.paint(0x2a2f33)); });
   };

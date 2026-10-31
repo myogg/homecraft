@@ -40,8 +40,18 @@ export const PETS = {
   ],
 };
 
-// 屋顶观景台用的外墙直梯（东侧外墙外，离墙≥1.5m 以免梯脚落入墙体阻挡格），登顶后步入屋顶。
-export const ROOF_LADDER = { x: 13.5, z: 7.5, top: 9, gate0: 6.5, gate1: 8.5 };
+// 屋外上观景台的玻璃观光电梯：贴东外墙（外墙格 x=12 的东缘 x=13），两层停靠。
+// 井道 x[13,15] z[8,10]、结构高到 11.4（观景台再上一层）；底层门朝东（草地），
+// 顶层门朝西（正对屋顶围栏缺口 gate0..gate1，跨一步就是观景台）。放在东南角
+// 是为了避开东墙 z6..8 的厨房窗，同时南面朝海——上升时整片海都在眼前。
+// 用格子整数边界，免得玻璃面压在格子中间。
+export const ROOF_LIFT = {
+  x0: 13, x1: 15, z0: 8, z1: 10,   // 东南角：东墙 z8..10 没有窗，且朝海
+  bottom: 0, top: 9,        // 停靠层：草地 / 观景台
+  rise: 2.4,                // 井道高出观景台的部分（顶层门洞高度）
+  door0: 8.35, door1: 9.65, // 门洞（z 向）
+  gate0: 8, gate1: 10,      // 屋顶围栏缺口，与井道同宽
+};
 
 // 二层通三层（屋顶观景台）的室内窄楼梯：占 x[3,4) 一格宽，从过厅（z=-3.2）
 // 向北升 9 级到屋顶（y=9）。次卧因此从 x[3,12) 缩到 x[5,12)，楼梯与次卧之间
@@ -143,8 +153,8 @@ export const STATIONS = [
   { id: 'bedroom', name: '主卧', en: 'Bedroom', at: [-5, -5.2], look: [-9.4, -6.3], floor: LOFT.y },
   // 二层次卧（同理，床位 x=9 z=-6.3）。
   { id: 'bedroom2', name: '次卧', en: 'Second bedroom', at: [5, -5.2], look: [9, -6.3], floor: LOFT.y },
-  // 观景台：先到梯脚，向前走即自动爬梯登顶。
-  { id: 'deck', name: '观景台', en: 'Observation deck', at: [13.5, 7.5], look: [11, 7.5],
+  // 观景台：先到东南角的电梯口，进轿厢后按 W 直上顶层（顶层按 S 下来）。
+  { id: 'deck', name: '观景台', en: 'Observation deck', at: [15.95, 9], look: [13, 9],
     show: [[22, 15, 26], [0, 9.5, 0]], showPortrait: [[34, 24, 38], [0, 9.5, 0]] },
   // 信箱（按 F 留言，未配 Worker 时调起访客邮件 App）。
   { id: 'mailbox', name: '留言', en: 'Mailbox', icon: 'mail', at: [MAILBOX.x, MAILBOX.z + 1.2], look: [MAILBOX.x, MAILBOX.z] },
@@ -167,7 +177,7 @@ export function floorAt(x, z) {
 
 // 屋顶观景台：在房屋范围内、最顶实心块之上即作为可站立面（引擎自动处理）。
 export function roofAt(x, z) {
-  return inHouse(x, z) ? ROOF_LADDER.top : 0;
+  return inHouse(x, z) ? ROOF_LIFT.top : 0;
 }
 
 // 屋内铺木地板，屋外草地。

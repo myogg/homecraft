@@ -539,8 +539,10 @@ export function createPlayer({ avatar, nav, grid = null, ground = null, onArrive
       const next = path.find(q => q.ladder);
       if (next) direction = Math.sign(next.y - y);
     }
-    speed = Math.abs(direction) * 2.8;
-    y = level = THREE.MathUtils.clamp(y + direction * 2.8 * dt, ladder.bottom, ladder.top);
+    // A lift is quicker off the mark than a ladder, and easier on the eye.
+    const rate = ladder.speed || 2.8;
+    speed = Math.abs(direction) * rate;
+    y = level = THREE.MathUtils.clamp(y + direction * rate * dt, ladder.bottom, ladder.top);
     // The last 70 cm carries the feet smoothly over the lip onto the roof.
     const over = THREE.MathUtils.smoothstep(y, ladder.top - .7, ladder.top);
     pos.x = ladder.x + (ladder.exit.x - ladder.x) * over;

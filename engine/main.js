@@ -721,8 +721,9 @@ async function boot() {
     }
     const { block, island, water } = target;
     if (water) return navigate(water.x, water.z, POOL.water);
-    if (island?.site === 'roof-ladder') {
-      const target = player.island === 'roof' ? world.roofAccess.foot : world.roofAccess.exit;
+    if (island?.site === 'roof-lift') {
+      const access = world.roofAccess;
+      const target = player.island === 'roof' ? access.approach : access.exit;
       return navigate(target.x, target.z, target.y);
     }
     if (island) return navigate(island.point.x, island.point.z, island.point.y);
@@ -751,7 +752,7 @@ async function boot() {
     const ceiling = targetY === null ? (!player.island && nav.canStand(x, z) ? nav.heightAt(x, z) + .7 : Infinity) : targetY + .7;
     const surface = world.ground.topAt(x, z, ceiling);
     const isle = surface?.site ? surface : null;
-    const roofSite = site => site === 'roof' || site === 'roof-ladder';
+    const roofSite = site => site === 'roof' || site === 'roof-lift';
     // Inside the house the loft and the deck are joined by a stair, so walking to
     // the roof from upstairs does not mean going down and out to the wall ladder.
     const loftY = L.LOFT?.y;
@@ -774,7 +775,7 @@ async function boot() {
       // other roof/ground travel uses the wall ladder.
       const points = roofSite(player.island) && player.y > 10.7 && isle?.site === 'roof'
         ? [{ x, z }] : access.route(player.pos.x, player.y, player.pos.z, x, toY, z);
-      const accepted = player.follow(points, player.island ? null : access.foot, isle ? null : () => player.goTo(x, z));
+      const accepted = player.follow(points, player.island ? null : access.approach, isle ? null : () => player.goTo(x, z));
       marker.show(x, toY, z, accepted ? 0x85c9ff : 0xeab66a);
       return accepted;
     }
@@ -1105,6 +1106,7 @@ async function boot() {
       if (st && targetDistance(st) > 3.5) closePage();
     }
     updateSleep(elapsed);
+    world.roofAccess?.update?.(elapsed, player);
     promptClock += elapsed;
     if (promptClock >= 0.1) { promptClock = 0; updatePrompt(); updateNudge(); }
 
