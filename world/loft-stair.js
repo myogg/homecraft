@@ -76,7 +76,7 @@ export function buildLoftStair(layer, materials, lighting = []) {
     // 往北退出塔再横穿屋顶。
     route(ax, ay, az, bx, by, bz) {
       const up = by > ay + 0.5;
-      const gate = { x: cx, y: S.top, z: S.z0 - 2.4 };
+      const gate = { x: cx, y: S.top, z: S.z0 - 3.5 };
       return up
         ? [{ ...foot }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...top }, gate, { x: bx, y: by, z: bz }]
         : [gate, { ...top }, { x: cx, y: S.top, z: S.z0 + 0.3 }, { ...foot }, { x: bx, y: by, z: bz }];
