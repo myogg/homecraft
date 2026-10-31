@@ -10,7 +10,10 @@ export const FLOOR_PLANTS = [
   { id: 'living', kind: 'money', x: -9.5, z: -3, height: 2.7, width: 1.5, yaw: 0.4 },
   { id: 'study', kind: 'monstera', x: 3.2, z: 3.6, height: 2.5, width: 1.55, yaw: -0.6 },
   { id: 'kitchen', kind: 'fig', x: 9.5, z: 4.2, height: 2.6, width: 1.45, yaw: 0.8 },
-  { id: 'bedroom', kind: 'bird', x: 10.4, z: -2.5, y: LOFT.y, level: 1, height: 2.7, width: 1.5, yaw: -0.4 },
+  // 二层两间卧室已封闭（南墙 z=-4、门朝过厅），盆栽放在各自房内空角：
+  // 主卧东北角（床东侧）、次卧东南角（床尾与东玻璃墙之间）。
+  { id: 'bedroom', kind: 'bird', x: 11.3, z: -5.2, y: LOFT.y, level: 1, height: 2.7, width: 1.2, yaw: -0.4 },
+  { id: 'bedroom2', kind: 'money', x: -4, z: -8.5, y: LOFT.y, level: 1, height: 2.7, width: 1.5, yaw: 0.5 },
   { id: 'cloak', kind: 'money', x: -11.5, z: 5.3, height: 2.6, width: 1.45, yaw: -0.5 },
   { id: 'terrace', kind: 'bird', x: -12.5, z: 13.2, height: 2.7, width: 1.5, yaw: 0.3 },
 ];

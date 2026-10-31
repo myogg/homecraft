@@ -125,10 +125,10 @@ export const STATIONS = [
   { id: 'bath', name: '卫生间', en: 'Bathroom', at: [-10.5, 5.2], look: [-10.5, 8.5] },
   // 衣帽间（卫生间东侧，门朝北）。
   { id: 'cloak', name: '衣帽间', en: 'Cloakroom', at: [-7.5, 5.2], look: [-7.5, 8.5] },
-  // 二层主卧（在二层楼板上）。
-  { id: 'bedroom', name: '主卧', en: 'Bedroom', at: [-7, -1.2], look: [-7, -5.5], floor: LOFT.y },
-  // 二层次卧。
-  { id: 'bedroom2', name: '次卧', en: 'Second bedroom', at: [7, -1.2], look: [7, -5.5], floor: LOFT.y },
+  // 二层主卧（卧室内，门内一步；床已靠北墙，x=-9.4 z=-6.3）。
+  { id: 'bedroom', name: '主卧', en: 'Bedroom', at: [-5, -5.2], look: [-9.4, -6.3], floor: LOFT.y },
+  // 二层次卧（同理，床位 x=9 z=-6.3）。
+  { id: 'bedroom2', name: '次卧', en: 'Second bedroom', at: [5, -5.2], look: [9, -6.3], floor: LOFT.y },
   // 观景台：先到梯脚，向前走即自动爬梯登顶。
   { id: 'deck', name: '观景台', en: 'Observation deck', at: [13.5, 7.5], look: [11, 7.5],
     show: [[22, 15, 26], [0, 9.5, 0]], showPortrait: [[34, 24, 38], [0, 9.5, 0]] },

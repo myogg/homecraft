@@ -88,19 +88,30 @@ export function buildShell(grid) {
   // 楼板下的实体基座：填死 y0..2 的暗层（免得透过一层窗看到黑洞），楼梯从中穿出。
   grid.fill(x0, 0, LOFT.z0, x1, LOFT.y - 1, LOFT.z1, 'partition');
   // 隔墙：yBase 起铺 h 高，doors 为门洞（格子中心落在门矩形内即留空）。
+  // 门洞可选 y0/y1（绝对高度）：给了就只在该高度段开洞，上方留过梁；不给则通高。
   const partition = (x0p, z0p, x1p, z1p, doors, yBase = 0, h = 3) => {
     for (let y = yBase; y < yBase + h; y++) for (let x = x0p; x < x1p; x++) for (let z = z0p; z < z1p; z++) {
-      const door = doors.some(d => x + 0.5 >= d.x0 && x + 0.5 < d.x1 && z + 0.5 >= d.z0 && z + 0.5 < d.z1);
+      const door = doors.some(d => x + 0.5 >= d.x0 && x + 0.5 < d.x1 && z + 0.5 >= d.z0 && z + 0.5 < d.z1
+        && (d.y0 === undefined || y + 0.5 >= d.y0) && (d.y1 === undefined || y + 0.5 < d.y1));
       grid.set(x, y, z, door ? null : 'partition', 'partition');
     }
   };
   // 一层西南角：卫生间与衣帽间（北墙各留 2 m 门洞，中间实体隔墙）。
   partition(-12, 6, -6, 7, [{ x0: -11.5, z0: 6, x1: -9.5, z1: 7 }, { x0: -8.6, z0: 6, x1: -6.4, z1: 7 }]);
   partition(-9, 6, -8, 10, []);
-  // 二层：两卧室之间的卫生间（x[-3,3) z[-10,-5)），南墙留门朝楼梯平台。
-  partition(-3, -5, 3, -4, [{ x0: -1, z0: -5, x1: 1, z1: -4 }], LOFT.y, 3);
-  partition(-3, -10, -2, -5, [], LOFT.y, 3);
-  partition(2, -10, 3, -5, [], LOFT.y, 3);
+  // 二层（y 4..8）：两间卧室各自围成独立房间，外墙是玻璃幕墙（落地窗）、
+  // 屋顶是玻璃顶（天窗），只在南墙开 2 m 门通向楼梯北侧的过厅——即「只有门窗」。
+  const LY = LOFT.y, WALL_H = 4, DOOR_TOP = LY + 3;   // 墙顶到玻璃顶；门净高 3 m，其上 1 m 过梁
+  const doorway = (x0d, z0d, x1d, z1d) => ({ x0: x0d, z0: z0d, x1: x1d, z1: z1d, y1: DOOR_TOP });
+  // 卫生间（x[-3,3) z[-10,-5)）南墙，门在 x[-1,1)，朝过厅。
+  partition(-3, -5, 3, -4, [doorway(-1, -5, 1, -4)], LY, WALL_H);
+  // 主卧（西，x[-12,-3) z[-10,-4)）：南墙 z=-4，门 x[-6,-4) 正对楼梯出口。
+  partition(-12, -4, -3, -3, [doorway(-6, -5, -4, -3)], LY, WALL_H);
+  // 次卧（东，x[3,12) z[-10,-4)）：南墙 z=-4，门 x[4,6)。
+  partition(3, -4, 12, -3, [doorway(4, -5, 6, -3)], LY, WALL_H);
+  // 两卧内侧墙（含卫生间两侧墙段），把卧室与过厅/楼梯平台隔开。
+  partition(-3, -10, -2, -3, [], LY, WALL_H);
+  partition(2, -10, 3, -3, [], LY, WALL_H);
 }
 
 // 泳池池体：从 bed 到地面把池内挖空（池底 pool_deep、池内 null），池缘一圈
