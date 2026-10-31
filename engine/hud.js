@@ -59,6 +59,9 @@ const HUD = `
     <button class="nudge-go mc-button" type="button"></button>
     <button class="nudge-close" type="button" aria-label="关闭提示" data-en-label="Dismiss">×</button>
   </aside>
+  <!-- Tapping a bed fades this over the world: the night passes under it,
+       and the room comes back already lit. -->
+  <div id="sleep" role="status" aria-live="polite"><div><b></b><span></span></div></div>
   <!-- Touch screens, flying by hand: Minecraft's pocket D-pad steers and the
        rocker climbs and descends (ui/flightpad.js). -->
   <div id="flightPad" hidden>

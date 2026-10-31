@@ -500,6 +500,64 @@ async function boot() {
   nudgeEl.querySelector('.nudge-close').addEventListener('click', () => hideNudge(true));
   onLang(() => { const s = nudgeFor && publicStations.find(st => st.id === nudgeFor); if (s) paintNudge(s); });
 
+  // ---------- Sleeping ----------
+  // A tap on a bed walks them round to its side, dims the room, and — at night —
+  // sleeps straight through to morning. Time follows the real clock by default,
+  // so this is the one place a visitor can move the night along; the weather
+  // menu's "follow the clock" puts it back.
+  const sleepEl = $('#sleep');
+  const sleepTitle = sleepEl.querySelector('b'), sleepSub = sleepEl.querySelector('span');
+  let sleepState = null, bedWalk = null;
+  const isNight = () => mood === 'night' || mood === 'evening';
+
+  function beginSleep(at) {
+    if (sleepState) return;
+    bedWalk = null;
+    sleepState = { t: 0, night: isNight(), woke: false };
+    closePage(); hideNudge(true); input.clear();
+    // The camera drops to the bedside while the room goes dark.
+    if (at) rig.showcase([at.x + 1.5, at.y + 1.05, at.z + 1.3], [at.x, at.y + 0.35, at.z]);
+    sleepTitle.textContent = t('晚安', 'Good night');
+    sleepSub.textContent = sleepState.night
+      ? t('灯熄了，一觉睡到天亮。', 'Lights out — you sleep until morning.')
+      : t('天还亮着，就躺一会儿。', 'Still daylight — just a short rest.');
+    sleepEl.classList.add('on');
+  }
+  // The bed sits against a wall, so the standing spot is the side they came from.
+  function goToBed(spot) {
+    if (sleepState || rig.introActive) return;
+    const at = spot.box.getCenter(new THREE.Vector3());
+    at.y = spot.box.min.y;                       // the mattress, not the box's middle
+    if (Math.hypot(player.pos.x - at.x, player.pos.z - at.z) < 2.4) { beginSleep(at); return; }
+    // 3.1 m from the bed's centre puts them a step clear of its footprint.
+    const stand = { x: at.x + (player.pos.x < at.x ? -1 : 1) * 3.1, z: at.z };
+    bedWalk = { stand, at, t: 0 };
+    navigate(stand.x, stand.z);
+  }
+  function updateSleep(dt) {
+    if (bedWalk) {
+      bedWalk.t += dt;
+      const d = Math.hypot(player.pos.x - bedWalk.stand.x, player.pos.z - bedWalk.stand.z);
+      if (d < 1) beginSleep(bedWalk.at);
+      else if (bedWalk.t > 9) bedWalk = null;
+    }
+    if (!sleepState) return;
+    sleepState.t += dt;
+    // Halfway: the night turns into morning under the black, and the room
+    // comes back up already lit.
+    if (!sleepState.woke && sleepState.t > 2) {
+      sleepState.woke = true;
+      if (sleepState.night) { setTimeMode('morning'); sleepSub.textContent = t('天亮了。', 'Morning has come.'); }
+      else sleepSub.textContent = t('歇够了。', 'Rested.');
+    }
+    // Waking up: the camera settles back behind them, then the room returns.
+    if (!sleepState.rose && sleepState.t > 3) {
+      sleepState.rose = true; rig.skipIntro(); sleepEl.classList.remove('on');
+    }
+    if (sleepState.t > 4.8) sleepState = null;
+  }
+  onLang(() => { if (sleepState) sleepTitle.textContent = t('晚安', 'Good night'); });
+
   // ---------- Hotbar ----------
   const hotbar = $('#hotbar');
   const tooltip = $('#tooltip');
@@ -543,7 +601,7 @@ async function boot() {
   // ---------- Picking ----------
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
-  const hotspots = world.hotspots.filter(h => publicStations.some(s => s.id === h.id));
+  const hotspots = world.hotspots.filter(h => publicStations.some(s => s.id === h.id) || h.id === 'bed');
 
   function pick(clientX, clientY) {
     ndc.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
@@ -639,7 +697,9 @@ async function boot() {
     else if (!fromPointer || now - aimCheck > 60) { aimCheck = now; aimOk = !!zipTarget(x, y); }
     aim.hidden = !aimOk;
     if (aimOk) aim.style.transform = `translate(${x}px, ${y}px)`;
-    stage.renderer.domElement.style.cursor = aimOk ? 'none' : x >= 0 && pick(x, y).spot?.id === 'portal' ? 'pointer' : '';
+    // Only pay for the extra ray once the crosshair has stopped asking for the web.
+    const spotId = !aimOk && x >= 0 ? pick(x, y).spot?.id : null;
+    stage.renderer.domElement.style.cursor = aimOk ? 'none' : spotId === 'portal' || spotId === 'bed' ? 'pointer' : '';
   }
   function refreshAim() {
     if (rig.firstPerson) hover(innerWidth / 2, innerHeight / 2);
@@ -649,6 +709,7 @@ async function boot() {
   function tap(x, y) {
     const target = pick(x, y);
     if (target.spot?.id === 'portal') { openPortal(); return; }
+    if (target.spot?.id === 'bed') { goToBed(target.spot); return; }
     // A tap during the opening shot only cuts it short; it does not send
     // the player towards wherever the far-away view happened to be touched.
     if (rig.introActive) { rig.skipIntro(); return; }
@@ -855,6 +916,7 @@ async function boot() {
       if (rig.firstPerson) {
         const { spot } = pick(innerWidth / 2, innerHeight / 2);
         if (spot?.id === 'portal') openPortal();
+        else if (spot?.id === 'bed') goToBed(spot);
         else if (spot) activate(spot.id);
       }
     },
@@ -1026,6 +1088,7 @@ async function boot() {
       const st = STATIONS.find(st => st.id === openStation);
       if (st && targetDistance(st) > 3.5) closePage();
     }
+    updateSleep(elapsed);
     promptClock += elapsed;
     if (promptClock >= 0.1) { promptClock = 0; updatePrompt(); updateNudge(); }
 

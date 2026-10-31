@@ -47,6 +47,7 @@ export function furnish({ layer }) {
     B.box(x, y + 0.8, z - 1.6, 2.6, 0.25, 0.8, L.paint(0xe7e2d8)); // 枕头
     B.box(x, y, z - 1.9, 3.4, 1.4, 0.25, L.panel);           // 床背（床头一侧）
     foot(x, z, 5.2, 4.4, 1);
+    hot('bed', x, y + 0.1, z, 3.2, 0.9, 3.9);                // 点床就能躺下睡
     for (const sx of stands) {
       B.box(x + sx, y, z - 1.4, 0.8, 0.6, 0.8, L.panel);     // 床头柜
       B.box(x + sx, y + 0.6, z - 1.4, 0.86, 0.05, 0.86, L.marble);
