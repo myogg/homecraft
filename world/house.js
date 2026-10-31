@@ -2,7 +2,8 @@
 // 岛屿本体由引擎 terrain.js 的 buildIsland 负责（用本文件的 surfaceAt 决定顶面贴图）。
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
-import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_SOLID, ROOF_BEAM_STEP, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS } from './layout.js';
+import { HOUSE, LOFT, STAIRS, ENTRANCE, ROOF_LADDER, ROOF_SOLID, ROOF_BEAM_STEP, POOL, POOL_DECK, POOL_LADDER, POOL_LAMPS,
+  LOFT_STAIR, ROOF_HATCH, STAIR_TOWER } from './layout.js';
 import { inRect } from '@engine/world/terrain.js';
 
 const SHELL = { x0: HOUSE.x0 - 1, x1: HOUSE.x1 + 1, z0: HOUSE.z0 - 1, z1: HOUSE.z1 + 1 };
@@ -74,7 +75,9 @@ export function buildShell(grid) {
     }
   }
   // 屋顶：玻璃顶（横梁分隔），放桌椅的正下方留实心；四周 1 m 围栏，东侧留梯口。
+  // 二层楼梯上来的那两格挖空（ROOF_HATCH），让楼梯穿出屋顶。
   for (let x = x0 - 1; x <= x1; x++) for (let z = z0 - 1; z <= z1; z++) {
+    if (inRect(ROOF_HATCH, x, z)) continue;
     const solid = ROOF_SOLID.some(s => inRect(s, x, z));
     const beam = !solid && ((x - (x0 - 1)) % ROOF_BEAM_STEP === 0 || (z - (z0 - 1)) % ROOF_BEAM_STEP === 0);
     grid.set(x, height, z, solid ? 'roof' : beam ? 'beam' : 'glass', 'roof');
@@ -107,11 +110,24 @@ export function buildShell(grid) {
   partition(-3, -5, 3, -4, [doorway(-1, -5, 1, -4)], LY, WALL_H);
   // 主卧（西，x[-12,-3) z[-10,-4)）：南墙 z=-4，门 x[-6,-4) 正对楼梯出口。
   partition(-12, -4, -3, -3, [doorway(-6, -5, -4, -3)], LY, WALL_H);
-  // 次卧（东，x[3,12) z[-10,-4)）：南墙 z=-4，门 x[4,6)。
-  partition(3, -4, 12, -3, [doorway(4, -5, 6, -3)], LY, WALL_H);
+  // 次卧（东，x[5,12) z[-10,-4)）：南墙 z=-4，门 x[6,8)；西侧 x=4 让给二层楼梯。
+  partition(5, -4, 12, -3, [doorway(6, -5, 8, -3)], LY, WALL_H);
   // 两卧内侧墙（含卫生间两侧墙段），把卧室与过厅/楼梯平台隔开。
   partition(-3, -10, -2, -3, [], LY, WALL_H);
-  partition(2, -10, 3, -3, [], LY, WALL_H);
+  partition(2, -10, 3, -3, [], LY, WALL_H);   // 卫生间东墙，同时是二层楼梯的西墙
+  partition(4, -10, 5, -3, [], LY, WALL_H);   // 二层楼梯东墙（次卧西墙）
+
+  // ===== 二层→三层的楼梯塔 =====
+  // 楼梯从屋顶穿出，洞口上方砌一座 3×3 的小塔：四面墙 + 实顶，南面敞开当门。
+  // 雨落在塔顶上，不会顺洞口灌进楼梯井。
+  const T = STAIR_TOWER, capY = T.cap;
+  for (let y = height + 1; y < capY; y++) {
+    for (let z = T.z0; z < T.z1; z++) {
+      grid.set(T.x0, y, z, 'partition', 'tower');                                        // 西墙
+      grid.set(T.x1 - 1, y, z, 'partition', 'tower');                                    // 东墙
+    }
+  }
+  for (let x = T.x0; x < T.x1; x++) for (let z = T.z0; z < T.z1; z++) grid.set(x, capY, z, 'roof', 'tower');
 }
 
 // 泳池池体：从 bed 到地面把池内挖空（池底 pool_deep、池内 null），池缘一圈

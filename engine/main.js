@@ -752,6 +752,22 @@ async function boot() {
     const surface = world.ground.topAt(x, z, ceiling);
     const isle = surface?.site ? surface : null;
     const roofSite = site => site === 'roof' || site === 'roof-ladder';
+    // Inside the house the loft and the deck are joined by a stair, so walking to
+    // the roof from upstairs does not mean going down and out to the wall ladder.
+    const loftY = L.LOFT?.y;
+    if (world.loftStair && !player.flying && loftY !== undefined) {
+      const stair = world.loftStair;
+      const onLoft = !player.island && Math.abs(player.y - loftY) < 1.1 && player.pos.z < 0;
+      const onDeck = player.island === 'roof';
+      const toRoof = roofSite(isle?.site) && (isle?.y ?? 0) > loftY + 4;
+      const toLoft = !isle && surface && Math.abs(surface.y - loftY) < 1.1;
+      if ((onLoft && toRoof) || (onDeck && (toLoft || (roofSite(isle?.site) && (isle?.y ?? 0) < loftY + 4)))) {
+        const goalY = isle?.y ?? surface?.y ?? loftY;
+        const accepted = player.follow(stair.route(player.pos.x, player.y, player.pos.z, x, goalY, z));
+        marker.show(x, goalY, z, accepted ? 0x85c9ff : 0xeab66a);
+        if (accepted) return true;
+      }
+    }
     if (world.roofAccess && !player.flying && (!player.island || roofSite(player.island)) && (roofSite(isle?.site) || (roofSite(player.island) && !isle))) {
       const access = world.roofAccess, toY = isle?.y ?? nav.heightAt(x, z);
       // Same-height roof clicks go straight across the flush glazing. All

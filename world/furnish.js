@@ -239,11 +239,11 @@ export function furnish({ layer }) {
   buildFloorPlants(B, foot);
   B.box(-2.62, ly, -6.5, 0.55, 0.5, 1.5, L.paint(0xf4f6f7)); // 二层卫生间：马桶（西墙）
   B.box(-2.3, ly + 0.5, -6.5, 0.75, 0.45, 0.85, L.paint(0xf4f6f7)); foot(-2.4, -6.5, 1, 1.6, 1);
-  B.box(1.9, ly, -8.8, 1.7, 0.12, 1.7, L.paint(0x9cc4d6));   // 淋浴房（东北角）
-  B.box(2.55, ly, -9.45, 0.06, 1.9, 0.06, L.steel); B.box(2.55, ly + 2.0, -9.1, 0.22, 0.05, 0.22, L.steel);
-  foot(1.9, -8.8, 1.8, 1.8, 1);
-  B.box(1.7, ly, -5.45, 1.2, 0.9, 0.6, L.marble);            // 洗脸台（南墙内侧）
-  B.box(1.7, ly + 0.9, -5.45, 1.3, 0.1, 0.7, L.marble); foot(1.7, -5.45, 1.4, 0.8, 1);
+  B.box(1.1, ly, -8.9, 1.5, 0.12, 1.5, L.paint(0x9cc4d6));   // 淋浴房（东北角，贴东墙不穿模）
+  B.box(1.78, ly, -9.45, 0.06, 1.9, 0.06, L.steel); B.box(1.78, ly + 2.0, -9.1, 0.22, 0.05, 0.22, L.steel);
+  foot(1.1, -8.9, 1.6, 1.6, 1);
+  B.box(1.35, ly, -5.45, 1.1, 0.9, 0.6, L.marble);           // 洗脸台（南墙内侧）
+  B.box(1.35, ly + 0.9, -5.45, 1.2, 0.1, 0.7, L.marble); foot(1.35, -5.45, 1.3, 0.8, 1);
   bake('bath2', 0, ly + 2.6, -7.5, 1.6, 5, [0, -1, 0]);
   // 挑空边缘的护栏（南沿让出楼梯洞口 x[-7,-3]；楼梯井两侧加护杆）。
   rail(-11.8, -0.3, -7, -0.3); rail(-3, -0.3, 11.8, -0.3);
@@ -255,10 +255,74 @@ export function furnish({ layer }) {
     B.box(cx, ly + 2.94, cz, w + 0.1, 0.12, 1.06, L.wood);
   };
   doorFrame(-5, -3.5, 2);   // 主卧门（南墙 z=-4 格，中心 z=-3.5）
-  doorFrame(5, -3.5, 2);    // 次卧门
+  doorFrame(7, -3.5, 2);    // 次卧门（随楼梯井东移）
   doorFrame(0, -4.5, 2);    // 二层卫生间门（南墙 z=-5 格）
   // 二层吊灯：传的是「离地高度」，必须用楼面 + 2.9 m；直接传 ly 会让灯体落在地面上。
   pendant(-9.4, -6.3, ly + 2.9); pendant(9, -6.3, ly + 2.9); pendant(0, -3, ly + 2.9);
+
+  // ===== 二层过厅：照片墙（次卧南墙外侧，朝过厅）=====
+  // 三幅程序绘制的旅行照，深木框 + 白卡纸，挂在过厅那面主要墙面上（避开次卧门）。
+  const photoSea = (ctx, w, h) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+    sky.addColorStop(0, '#2c3a5c'); sky.addColorStop(0.55, '#a95f45'); sky.addColorStop(1, '#f2a660');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h * 0.62);
+    ctx.fillStyle = '#ffdcaa'; ctx.beginPath(); ctx.arc(w * 0.63, h * 0.5, h * 0.072, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(58,48,66,0.4)';
+    for (const [yy, wd] of [[0.22, 0.46], [0.31, 0.68], [0.4, 0.32]]) ctx.fillRect(w * 0.06, h * yy, w * wd, h * 0.018);
+    const sea = ctx.createLinearGradient(0, h * 0.62, 0, h);
+    sea.addColorStop(0, '#4c3f54'); sea.addColorStop(1, '#121826');
+    ctx.fillStyle = sea; ctx.fillRect(0, h * 0.62, w, h * 0.38);
+    ctx.fillStyle = 'rgba(255,206,152,0.5)';
+    for (let i = 0; i < 18; i++) {
+      const t = i / 18, yy = h * (0.635 + t * 0.35);
+      const ww = w * (0.015 + t * 0.12) * (0.55 + 0.45 * Math.abs(Math.sin(i * 2.3)));
+      ctx.fillRect(w * 0.63 - ww / 2, yy, ww, Math.max(1, h * 0.005));
+    }
+  };
+  const photoHill = (ctx, w, h) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, '#e3eae6'); sky.addColorStop(1, '#a8bbb5');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+    const ridge = (base, amp, col, n) => {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, h);
+      for (let i = 0; i <= n; i++) {
+        const t = i / n;
+        const yy = h * base - Math.sin(t * Math.PI * 2.1 + 0.4) * h * amp - Math.sin(t * Math.PI * 5.3) * h * amp * 0.26;
+        ctx.lineTo(t * w, yy);
+      }
+      ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
+    };
+    ridge(0.64, 0.15, '#93a5a1', 42);
+    ridge(0.75, 0.11, '#728785', 36);
+    ridge(0.87, 0.07, '#4f6262', 30);
+    ctx.fillStyle = 'rgba(242,246,244,0.32)'; ctx.fillRect(0, h * 0.66, w, h * 0.09);
+  };
+  const photoCat = (ctx, w, h) => {
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#f4e5cf'); bg.addColorStop(1, '#dcc3a2');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,247,229,0.8)';
+    ctx.beginPath(); ctx.moveTo(w * 0.1, h * 0.08); ctx.lineTo(w * 0.48, h * 0.04);
+    ctx.lineTo(w * 0.32, h * 0.94); ctx.lineTo(0, h * 0.99); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3b332c';
+    ctx.beginPath(); ctx.ellipse(w * 0.57, h * 0.76, w * 0.2, h * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w * 0.57, h * 0.44, w * 0.135, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w * 0.465, h * 0.36); ctx.lineTo(w * 0.45, h * 0.25); ctx.lineTo(w * 0.55, h * 0.32); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w * 0.675, h * 0.36); ctx.lineTo(w * 0.69, h * 0.25); ctx.lineTo(w * 0.59, h * 0.32); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f0c96a';
+    ctx.beginPath(); ctx.arc(w * 0.515, h * 0.44, w * 0.024, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(w * 0.625, h * 0.44, w * 0.024, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#3b332c'; ctx.lineWidth = w * 0.042; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(w * 0.74, h * 0.88); ctx.quadraticCurveTo(w * 0.94, h * 0.84, w * 0.89, h * 0.6); ctx.stroke();
+  };
+  const photoWall = (cx, cy, w, h, fn) => {
+    B.box(cx, cy - h / 2 - 0.07, -2.975, w + 0.14, h + 0.13, 0.05, L.panel);            // 深木框
+    B.box(cx, cy - h / 2 - 0.03, -2.944, w + 0.07, h + 0.07, 0.026, L.paint(0xf6f1e6)); // 白卡纸
+    plane(w, h, paint(Math.round(w * 320), Math.round(h * 320), fn), cx, cy, -2.928, 0);
+  };
+  photoWall(5.5, 5.68, 0.78, 1.02, photoCat);
+  photoWall(9.3, 5.72, 1.68, 1.02, photoSea);
+  photoWall(11.28, 5.68, 0.78, 1.02, photoHill);
 
   // ===== 屋顶观景台（y = ROOF_LADDER.top = 9）：围栏已有，加凳子 + 遮阳伞 =====
   const dy = ROOF_LADDER.top;

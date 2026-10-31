@@ -4,6 +4,7 @@ import { buildIsland } from '@engine/world/terrain.js';
 import { buildForest } from '@engine/world/landscape.js';
 import { defineHouseBlocks, surfaceAt, buildShell, buildStairs, buildRoofAccess, buildOpenings, buildPool } from './house.js';
 import { furnish } from './furnish.js';
+import { buildLoftStair } from './loft-stair.js';
 import { ISLAND, TREES } from './layout.js';
 
 export function build({ grid, layer, materials, stage }) {
@@ -17,6 +18,8 @@ export function build({ grid, layer, materials, stage }) {
   const openings = buildOpenings(layer);
   const roofAccess = buildRoofAccess(layer, materials);
   stage.scene.add(roofAccess.group);
+  const loftStair = buildLoftStair(layer, materials);
+  stage.scene.add(loftStair.group);
   return {
     batches: { ...furn.batches, stairs: stairs.batch, openings },
     planes: furn.planes,
@@ -27,7 +30,7 @@ export function build({ grid, layer, materials, stage }) {
     animated: furn.animated,
     surfaces: furn.surfaces,
     forest,
-    sitesAfter: [roofAccess],
-    named: { roofAccess },
+    sitesAfter: [roofAccess, loftStair],
+    named: { roofAccess, loftStair },
   };
 }
