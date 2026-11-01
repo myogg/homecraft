@@ -2,15 +2,14 @@
 // 引擎在启动时调用一次 build()，返回 batches/planes/obstacles/lights/bakes/hotspots/animated/surfaces/forest/sitesAfter。
 import { buildIsland } from '@engine/world/terrain.js';
 import { buildForest } from '@engine/world/landscape.js';
-import { defineHouseBlocks, surfaceAt, buildShell, buildStairs, buildRoofAccess, buildOpenings, buildPool } from './house.js';
+import { defineHouseBlocks, surfaceAt, buildShell, buildStairs, buildRoofAccess, buildLoftLift, buildOpenings, buildPool } from './house.js';
 import { furnish } from './furnish.js';
-import { buildLoftStair } from './loft-stair.js';
-import { ISLAND, TREES, LOFT_STAIR } from './layout.js';
+import { ISLAND, TREES, LOFT_LIFT } from './layout.js';
 
-// 二层窄楼梯在导航网格里记成障碍（只封二层那格）：那一格是楼梯实体，不该被
-// 当成过厅地板横着穿过去；上下楼一律走楼梯自己的踏面（sitesAfter 里的 loftStair）。
-// 南端收进 0.2 m，只封真正的踏步，别把楼梯口的起步平台也堵上。
-const stairBlock = { x0: LOFT_STAIR.x0, x1: LOFT_STAIR.x1, z0: LOFT_STAIR.z0, z1: LOFT_STAIR.z1 - 0.2, level: 1, noShadow: true };
+// 室内电梯井道在导航网格里记成障碍（只封二层那格）：那一格是电梯实体，不该被
+// 当成过厅地板横着穿过去；上下楼一律走电梯自己的 route（sitesAfter 里的 loftLift）。
+// 井道南北端都落在格线上，整格封死刚好；站立面由 loftLift.levels 补。
+const stairBlock = { x0: LOFT_LIFT.x0, x1: LOFT_LIFT.x1, z0: LOFT_LIFT.z0, z1: LOFT_LIFT.z1, level: 1, noShadow: true };
 
 export function build({ grid, layer, materials, stage }) {
   defineHouseBlocks(grid);
@@ -23,8 +22,8 @@ export function build({ grid, layer, materials, stage }) {
   const openings = buildOpenings(layer);
   const roofAccess = buildRoofAccess(layer, materials);
   stage.scene.add(roofAccess.group);
-  const loftStair = buildLoftStair(layer, materials, furn.lighting);
-  stage.scene.add(loftStair.group);
+  const loftLift = buildLoftLift(layer, materials);
+  stage.scene.add(loftLift.group);
   return {
     batches: { ...furn.batches, stairs: stairs.batch, openings },
     planes: furn.planes,
@@ -35,7 +34,7 @@ export function build({ grid, layer, materials, stage }) {
     animated: furn.animated,
     surfaces: furn.surfaces,
     forest,
-    sitesAfter: [roofAccess, loftStair],
-    named: { roofAccess, loftStair },
+    sitesAfter: [roofAccess, loftLift],
+    named: { roofAccess, loftLift },
   };
 }

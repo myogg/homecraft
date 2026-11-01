@@ -725,8 +725,8 @@ async function boot() {
     }
     const { block, island, water } = target;
     if (water) return navigate(water.x, water.z, POOL.water);
-    if (island?.site === 'roof-lift') {
-      const access = world.roofAccess;
+    if (island?.site === 'roof-lift' || island?.site === 'loft-lift') {
+      const access = world[island.site === 'roof-lift' ? 'roofAccess' : 'loftLift'];
       const target = player.island === 'roof' ? access.approach : access.exit;
       return navigate(target.x, target.z, target.y);
     }
@@ -760,19 +760,26 @@ async function boot() {
     // Inside the house the loft and the deck are joined by a stair, so walking to
     // the roof from upstairs does not mean going down and out to the wall ladder.
     const loftY = L.LOFT?.y;
-    if (world.loftStair && !player.flying && loftY !== undefined) {
-      const stair = world.loftStair;
+    if (world.loftLift && !player.flying && loftY !== undefined) {
+      const access = world.loftLift;
       const onLoft = !player.island && Math.abs(player.y - loftY) < 1.1 && player.pos.z < 0;
       const onDeck = player.island === 'roof';
-      const toRoof = roofSite(isle?.site) && (isle?.y ?? 0) > loftY + 4;
-      const toLoft = !isle && surface && Math.abs(surface.y - loftY) < 1.1;
-      if ((onLoft && toRoof) || (onDeck && (toLoft || (roofSite(isle?.site) && (isle?.y ?? 0) < loftY + 4)))) {
-        const goalY = isle?.y ?? surface?.y ?? loftY;
-        // From a bedroom on the loft the stair is behind walls: let the walk grid
-        // take the player to its foot first, then follow the flight up. Already on
-        // the flight, just go on up.
-        const via = onLoft && player.y < loftY + 0.4 ? stair.foot : null;
-        const accepted = player.follow(stair.route(player.pos.x, player.y, player.pos.z, x, goalY, z), via);
+      const onLift = player.island === 'loft-lift';
+      // A click over the loft footprint resolves to the roof deck (y≈9) because
+      // the deck lies above the loft floor, so the ray hits the roof, not the
+      // floor at y=4. Decide up/down from the *clicked* height (targetY, the
+      // picked point's y) instead of the surface the ray lands on.
+      const destY = targetY !== null ? targetY : (surface?.y ?? loftY);
+      const toRoof = Math.abs(destY - loftY) > 4;   // roof deck, ~5 m above the loft
+      const toLoft = Math.abs(destY - loftY) < 1.1; // the loft floor itself
+      if ((onLoft && toRoof) || (onDeck && (toLoft || (roofSite(isle?.site) && (isle?.y ?? 0) < loftY + 4))) || (onLift && (toRoof || toLoft))) {
+        const goalY = toLoft ? loftY : destY;
+        // From a bedroom on the loft the lift is behind walls: let the walk grid
+        // take the player to its approach first, then board and ride. Already at
+        // the door (or on the lift), skip the approach leg and ride straight away.
+        const near = Math.hypot(player.pos.x - access.approach.x, player.pos.z - access.approach.z) < 0.7;
+        const via = onLoft && player.y < loftY + 0.4 && !near ? access.approach : null;
+        const accepted = player.follow(access.route(player.pos.x, player.y, player.pos.z, x, goalY, z), via);
         marker.show(x, goalY, z, accepted ? 0x85c9ff : 0xeab66a);
         if (accepted) return true;
       }
@@ -1115,6 +1122,7 @@ async function boot() {
     }
     updateSleep(elapsed);
     world.roofAccess?.update?.(elapsed, player);
+    world.loftLift?.update?.(elapsed, player);
     promptClock += elapsed;
     if (promptClock >= 0.1) { promptClock = 0; updatePrompt(); updateNudge(); }
 
