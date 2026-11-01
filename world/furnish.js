@@ -189,13 +189,143 @@ export function furnish({ layer }) {
     ctx.font = `${Math.round(h * 0.07)}px monospace`;
     for (let i = 0; i < 11; i++) { ctx.fillStyle = colors[i % colors.length]; ctx.fillText('const ' + 'home'.repeat(1 + (i % 3)) + ' = craft();', w * 0.04, h * (0.12 + i * 0.075)); }
   };
+  // 书房的 3×2 多屏：每块各开一扇「窗」，拼成一张工作台。原来六块共用同一张
+  // 代码雨纹理，加上屏面与显示器边框共面被黑框吃掉，远看就是一排关机黑屏。
+  const MONO = 'monospace', SANS = 'sans-serif';
+  const screens = {
+    // 代码编辑器：行号 + 彩色 token
+    code(ctx, w, h) {
+      const f = Math.round(h * 0.072), lh = f * 1.62;
+      const rows = [
+        ['const', ' sofa ', '=', ' lounge', '();'],
+        ['lift', '.to(', '9', ');'], ['', 'for (const', ' room ', 'of', ' house)', ''],
+        ['', '  ', 'render', '(room);'], ['', '},', '', '', ''],
+        ['// 一层：', '休息区'], ['', 'sandbox', '.', 'add', '(sofa);'],
+        ['', 'await', ' ', 'warm', '(', 'lamp', ');'], ['', '', '', '', ''],
+        ['export', ' default', ' home', ';'],
+      ];
+      const palette = ['#c792ea', '#e6edf3', '#79c0ff', '#ffa657', '#7ee787'];
+      let y = 26 + lh;
+      rows.forEach((tokens, i) => {
+        ctx.fillStyle = '#4b5a69'; ctx.font = `${Math.round(f * 0.82)}px ${MONO}`;
+        ctx.fillText(String(i + 1).padStart(2, ' '), 6, y);
+        let x = 26;
+        tokens.forEach((t, k) => {
+          if (!t) { x += 4; return; }
+          ctx.fillStyle = t.startsWith('//') ? '#5f7f6a' : palette[k % palette.length];
+          ctx.font = `${f}px ${MONO}`; ctx.fillText(t, x, y);
+          x += ctx.measureText(t).width;
+        });
+        y += lh;
+      });
+    },
+    // 3D 视图：等距线框小屋 + 轴
+    view(ctx, w, h) {
+      const cx = w * 0.5, cy = h * 0.56, s = Math.min(w, h) * 0.3;
+      const P = (x, y, z) => [cx + (x - z) * 0.72 * s, cy + ((x + z) * 0.36 - y) * s];
+      const edge = (a, b, col = '#4f7fa8') => { const p = P(...a), q = P(...b); ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); };
+      const V = [[-1,0,-1],[1,0,-1],[1,0,1],[-1,0,1],[-1,1.4,-1],[1,1.4,-1],[1,1.4,1],[-1,1.4,1]];
+      // 地面格网
+      ctx.strokeStyle = '#22303d'; ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) { const a = P(i, 0, -2), b = P(i, 0, 2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); const c = P(-2, 0, i), d = P(2, 0, i); ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke(); }
+      for (let i = 0; i < 4; i++) { edge(V[i], V[(i + 1) % 4]); edge(V[i + 4], V[4 + (i + 1) % 4]); edge(V[i], V[i + 4]); }
+      // 双坡屋顶
+      const ridge = [[0, 2.1, -1.1], [0, 2.1, 1.1]];
+      edge(V[4], ridge[0], '#7ee787'); edge(V[5], ridge[0], '#7ee787');
+      edge(V[7], ridge[1], '#7ee787'); edge(V[6], ridge[1], '#7ee787');
+      edge(ridge[0], ridge[1], '#7ee787');
+      // 高亮一块格子
+      const g = [P(0, 0.01, 0), P(1, 0.01, 0), P(1, 0.01, 1), P(0, 0.01, 1)];
+      ctx.fillStyle = 'rgba(126,231,135,0.22)'; ctx.beginPath();
+      ctx.moveTo(...g[0]); g.slice(1).forEach(p => ctx.lineTo(...p)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#9fb0c3'; ctx.font = `11px ${MONO}`;
+      ctx.fillText('x  y  z', 8, h - 8);
+      ctx.fillStyle = '#7ee787'; ctx.fillText('1 m', 8, 22);
+    },
+    // 终端
+    term(ctx, w, h) {
+      const f = Math.round(h * 0.078), lh = f * 1.6;
+      const lines = [
+        ['#7ee787', '$ npm run build'],
+        ['#8b9bb0', '> homecraft@1.0.0 build'],
+        ['#8b9bb0', 'esbuild world/ index.js'],
+        ['#7ee787', 'built dist (1.9M)'],
+        ['#7ee787', '$ ./tools/serve.sh'],
+        ['#8b9bb0', 'listening on :8080'],
+        ['#ffa657', 'warn  1 chunk > 500kb'],
+        ['#e6edf3', '$ '],
+      ];
+      let y = 28 + lh * 0.8;
+      lines.forEach(([col, t]) => { ctx.fillStyle = col; ctx.font = `${f}px ${MONO}`; ctx.fillText(t, 10, y); y += lh; });
+      ctx.fillStyle = '#7ee787'; ctx.fillRect(10 + ctx.measureText('$ ').width, y - lh + 4, f * 0.45, f * 0.95); // 光标
+    },
+    // 数据面板：网格 + 折线 + 柱
+    chart(ctx, w, h) {
+      const x0 = 30, x1 = w - 12, y0 = 34, y1 = h - 22;
+      ctx.strokeStyle = '#1e2a35'; ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) { const y = y0 + (y1 - y0) * i / 4; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); }
+      const bars = [0.35, 0.55, 0.42, 0.72, 0.6, 0.86, 0.5, 0.66, 0.9, 0.58];
+      const bw = (x1 - x0) / bars.length;
+      bars.forEach((v, i) => { ctx.fillStyle = 'rgba(121,192,255,0.35)'; ctx.fillRect(x0 + i * bw + 2, y1 - (y1 - y0) * v, bw - 4, (y1 - y0) * v); });
+      ctx.strokeStyle = '#ffa657'; ctx.lineWidth = 2; ctx.beginPath();
+      bars.forEach((v, i) => { const x = x0 + i * bw + bw / 2, y = y1 - (y1 - y0) * (0.25 + v * 0.62); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.stroke();
+      ctx.fillStyle = '#9fb0c3'; ctx.font = `11px ${SANS}`; ctx.fillText('visitors', 8, 22);
+      ctx.fillStyle = '#7ee787'; ctx.font = `600 13px ${SANS}`; ctx.fillText('+18%', w - 52, 22);
+    },
+    // 户型俯视：房间分格 + 位置点
+    map(ctx, w, h) {
+      const pad = 22, mw = w - pad * 2, mh = h - pad * 2 - 8;
+      ctx.strokeStyle = '#3b4d5e'; ctx.lineWidth = 1.4;
+      ctx.strokeRect(pad, pad + 6, mw, mh);
+      const rooms = [[0, 0, 0.34, 0.55], [0.34, 0, 0.36, 0.55], [0.7, 0, 0.3, 0.55], [0, 0.55, 0.5, 0.45], [0.5, 0.55, 0.5, 0.45]];
+      rooms.forEach(([rx, ry, rw, rh]) => { ctx.strokeStyle = '#2b3a48'; ctx.strokeRect(pad + mw * rx, pad + 6 + mh * ry, mw * rw, mh * rh); });
+      ctx.fillStyle = 'rgba(126,231,135,0.14)'; ctx.fillRect(pad + mw * 0.5, pad + 6 + mh * 0.55, mw * 0.5, mh * 0.45);
+      ctx.fillStyle = '#ff7b72'; ctx.beginPath(); ctx.arc(pad + mw * 0.72, pad + 6 + mh * 0.76, 4, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,123,114,0.5)'; ctx.beginPath(); ctx.arc(pad + mw * 0.72, pad + 6 + mh * 0.76, 9, 0, 7); ctx.stroke();
+      ctx.fillStyle = '#9fb0c3'; ctx.font = `11px ${SANS}`; ctx.fillText('ground floor', pad, 18);
+    },
+    // 音频：频谱 + 波形
+    audio(ctx, w, h) {
+      const mid = h * 0.42, n = 26, bw = (w - 24) / n;
+      for (let i = 0; i < n; i++) {
+        const v = 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6 + 1));
+        const bh = (h * 0.34) * v;
+        ctx.fillStyle = i % 3 === 0 ? '#ffa657' : '#79c0ff';
+        ctx.fillRect(12 + i * bw + 1, mid - bh, bw - 3, bh);
+      }
+      ctx.strokeStyle = '#7ee787'; ctx.lineWidth = 1.6; ctx.beginPath();
+      for (let x = 12; x < w - 12; x += 3) {
+        const y = h * 0.82 + Math.sin(x * 0.35) * 9 * Math.sin(x * 0.07);
+        x === 12 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#9fb0c3'; ctx.font = `11px ${SANS}`; ctx.fillText('now playing', 12, 18);
+    },
+  };
+  // 一扇「窗」：深底 + 顶栏（窗口点 + 标题）+ 内容。
+  const monitorPane = (kind, title) => (ctx, w, h) => {
+    ctx.fillStyle = '#0f1319'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#171f28'; ctx.fillRect(0, 0, w, 26);
+    ['#ff5f57', '#febc2e', '#28c840'].forEach((c, i) => {
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(11 + i * 11, 13, 3.1, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = '#8fa3b8'; ctx.font = `600 11px ${SANS}`; ctx.fillText(title, 48, 17);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 26, w, h - 26); ctx.clip();
+    screens[kind](ctx, w, h); ctx.restore();
+  };
   // 角落电脑桌：桌面 + 钢腿 + 显示器（画面朝 +z/南，观者站在南侧）。
-  const deskComp = (x, z, ry) => B.at(x, 0, z, ry, () => {
-    B.box(0, 1.05, 0, 2.4, 0.08, 0.9, L.panel);
-    for (const lx of [-1.05, 1.05]) B.box(lx, 0, 0, 0.1, 1.05, 0.1, L.steel);
-    plane(1.7, 1.0, paint(420, 250, monitorPaint), 0, 1.95, -0.2, ry, true);
-    B.box(0, 1.1, 0.25, 1.7, 0.06, 0.1, L.steel);
-  });
+  // 显示器屏面在 B.at 之外摆：plane() 不吃 BoxBatch 的变换栈，得自己按 ry 换算
+  // 世界坐标（局部 z=-0.2 绕 y 转 ry 后 = (-0.2·sin ry, 1.95, -0.2·cos ry)）。
+  const deskComp = (x, z, ry) => {
+    B.at(x, 0, z, ry, () => {
+      B.box(0, 1.05, 0, 2.4, 0.08, 0.9, L.panel);
+      for (const lx of [-1.05, 1.05]) B.box(lx, 0, 0, 0.1, 1.05, 0.1, L.steel);
+      B.box(0, 1.1, 0.25, 1.7, 0.06, 0.1, L.steel);
+    });
+    const px = x - 0.2 * Math.sin(ry), pz = z - 0.2 * Math.cos(ry);
+    plane(1.7, 1.0, paint(420, 250, monitorPane('code', 'homecraft — world')), px, 1.95, pz, ry, true);
+  };
 
   // ===== 一层：客厅（门厅中庭，沙发东移避开门轴与西侧楼梯）=====
   B.box(-9.25, 0, 3, 3.5, 0.025, 5.6, L.linen);            // 地毯（收到楼梯西侧）
@@ -290,18 +420,28 @@ export function furnish({ layer }) {
   for (const b of shelfBooks({ face: 11.54, z0: shelf.z0, z1: shelf.z1, shelves: shelf.shelves, seed: 2024 }))
     B.box(b.x, b.y, b.z, b.w, b.h, b.d, L.paint(b.tint), { rx: b.rx || 0, shadow: false });
   // 书房：长桌 + 多屏拼接（3×2 显示器墙，画面朝南）+ 多台主机 + 椅。
-  B.at(7, 0, 1.5, 0, () => {
+  const deskX = 7, deskZ = 1.5;
+  const cols = 3, rows = 2, mw = 1.45, mh = 0.82, gp = 0.1;   // 多屏拼接
+  const span = cols * mw + (cols - 1) * gp, mX0 = -span / 2 + mw / 2, baseY = 1.5;
+  const panes = [['code', 'house.js'], ['view', 'view — home'], ['term', 'zsh — build'],
+    ['chart', 'analytics'], ['map', 'floor plan'], ['audio', 'player']];
+  B.at(deskX, 0, deskZ, 0, () => {
     B.box(0, 1.05, 0, 5.4, 0.08, 1.3, L.panel);              // 桌面
     for (const lx of [-2.5, 2.5]) B.box(lx, 0, 0, 0.12, 1.05, 0.12, L.steel);
-    const cols = 3, rows = 2, mw = 1.45, mh = 0.82, gp = 0.1;   // 多屏拼接
-    const span = cols * mw + (cols - 1) * gp, x0 = -span / 2 + mw / 2, baseY = 1.5;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-      const mx = x0 + c * (mw + gp), my = baseY + r * (mh + gp);
+      const mx = mX0 + c * (mw + gp), my = baseY + r * (mh + gp);
       B.box(mx, my, -0.42, mw + 0.07, mh + 0.07, 0.06, L.paint(0x0d0f12));   // 显示器边框
-      plane(mw, mh, paint(360, 210, monitorPaint), mx, my, -0.39, 0, true);    // 屏幕（代码雨）
     }
     B.box(0, 1.18, -0.5, span + 0.3, 0.06, 0.12, L.steel);                   // 支架横梁
   });
+  // 六块屏面各开一扇窗：代码 / 3D 视图 / 终端 / 图表 / 户型 / 波形。
+  // 注意 plane() 不参与 B.at 的矩阵（那是 BoxBatch 的私有栈），只能按世界坐标摆
+  // ——原来写在 at 回调里，六块画面全落在世界原点附近，书房只剩一圈黑边框。
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const mx = deskX + mX0 + c * (mw + gp), my = baseY + r * (mh + gp);
+    const [kind, title] = panes[r * cols + c];
+    plane(mw, mh, paint(420, 250, monitorPane(kind, title)), mx, my, deskZ - 0.375, 0, true);
+  }
   foot(7, 1.5, 5.5, 1.4);
   for (const tx of [-2.4, 0, 2.4]) { B.box(tx, 0.5, 1.2, 0.5, 1.0, 0.9, L.paint(0x2a2f33)); B.box(tx, 0.04, 1.2, 0.54, 0.04, 0.94, L.steel); }
   foot(7, 1.2, 5.4, 1.5);
