@@ -5,16 +5,13 @@
 //   src     音频直链——浏览器 <audio> 能直接放的那种，mp3 / m4a / ogg 都行
 //
 // 没有 src 的条目在点歌机上显示「待接入」，点了不报错、也不会卡住。
-//
-// 下面这些是免版权（royalty-free）公共试听曲，用来先把点歌台填满、确认能正常
-// 上一首 / 下一首 / 随机播放。换成你自己的歌单时，把每一行的 title / artist / src
-// 改成你的歌名和「浏览器能直接访问的 mp3 直链」即可（163、QQ、Spotify 等需要
-// 登录或走后端代理，给不了直链，放这里放不了）。
+// 注意：浏览器 <audio> 不支持 wma（只有 macOS Safari 偶尔能放），
+// 所以下面那首「害我受了伤」建议转成 mp3 再替换 src。
 export const PLAYLIST = [
-  { title: '试听曲 1 · Sunburst', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-  { title: '试听曲 2 · Midnight', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-  { title: '试听曲 3 · Daydream', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-  { title: '试听曲 4 · Pulse', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-  { title: '试听曲 5 · Horizon', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
-  { title: '试听曲 6 · Echoes', artist: '免版权 · SoundHelix', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+  { title: '胡广生', artist: '任素汐', src: 'https://i.134688.xyz/file/1793492618523_胡广生_-_任素汐.mp3' },
+  { title: '祈神怜', artist: '一颗狼星', src: 'https://i.134688.xyz/file/1793492833755_祈神怜_-_一颗狼星.mp3' },
+  { title: '离别开出花', artist: '就是南方凯', src: 'https://i.134688.xyz/file/1793492985078_离别开出花_-_就是南方凯.mp3' },
+  { title: '若月亮没来（若是月亮还没来）', artist: '王宇宙Leto、乔浚丞', src: 'https://i.134688.xyz/file/1793493057640_若月亮没来__若是月亮还没来__-_王宇宙Leto、乔浚丞.mp3' },
+  { title: '我头回过桥', artist: '威猛先生、尹默陌', src: 'https://i.134688.xyz/file/1793493188990_我头回过桥_-_威猛先生、尹默陌.mp3' },
+  { title: '害我受了伤', artist: '黄蓉', src: 'https://i.134688.xyz/file/1793493469532_害我受了伤_黄蓉.wma' },
 ];
