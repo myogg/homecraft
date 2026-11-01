@@ -462,7 +462,11 @@ async function boot() {
   const nudgeTitle = nudgeEl.querySelector('.nudge-body b');
   const nudgeNote = nudgeEl.querySelector('.nudge-body span');
   const nudgeGo = nudgeEl.querySelector('.nudge-go');
-  const nudgeSeen = new Set();
+  // Seen nudges persist across reloads via localStorage, so each room's hint
+  // shows at most once ever (unless the player clears site data).
+  const NUDGE_KEY = 'hc:nudge-seen';
+  const nudgeSeen = (() => { try { return new Set(JSON.parse(localStorage.getItem(NUDGE_KEY) || '[]')); } catch { return new Set(); } })();
+  function rememberNudge(id) { if (!id) return; nudgeSeen.add(id); try { localStorage.setItem(NUDGE_KEY, JSON.stringify([...nudgeSeen])); } catch {} }
   const NUDGE_RANGE = 3.4;
   let nudgeFor = null, nudgeTimer = 0;
 
@@ -488,7 +492,7 @@ async function boot() {
   }
   function hideNudge(remember) {
     clearTimeout(nudgeTimer);
-    if (remember && nudgeFor) nudgeSeen.add(nudgeFor);
+    if (remember && nudgeFor) rememberNudge(nudgeFor);
     nudgeFor = null; nudgeEl.hidden = true;
   }
   function updateNudge() {
@@ -499,7 +503,7 @@ async function boot() {
     if (nudgeFor === s.id) return;
     nudgeFor = s.id; paintNudge(s); nudgeEl.hidden = false;
     clearTimeout(nudgeTimer);
-    nudgeTimer = setTimeout(() => hideNudge(true), 9000);
+    nudgeTimer = setTimeout(() => hideNudge(true), 5500);
   }
   nudgeEl.querySelector('.nudge-close').addEventListener('click', () => hideNudge(true));
   onLang(() => { const s = nudgeFor && publicStations.find(st => st.id === nudgeFor); if (s) paintNudge(s); });
