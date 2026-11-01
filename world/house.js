@@ -75,7 +75,7 @@ export function buildShell(grid) {
     }
   }
   // 屋顶：玻璃顶（横梁分隔），放桌椅的正下方留实心；四周 1 m 围栏，东侧留梯口。
-  // 室内电梯井那一格挖空（ROOF_HATCH）：井道从洞里穿出去，洞口外仍是完整台面。
+  // 室内电梯井那一格挖空（ROOF_HATCH）：井道与屋顶齐平，轿厢从洞里穿行，洞口外仍是完整台面。
   for (let x = x0 - 1; x <= x1; x++) for (let z = z0 - 1; z <= z1; z++) {
     if (inRect(ROOF_HATCH, x, z)) continue;
     const solid = ROOF_SOLID.some(s => inRect(s, x, z));
@@ -85,6 +85,13 @@ export function buildShell(grid) {
     const gate = x === x1 && z >= ROOF_LIFT.gate0 && z < ROOF_LIFT.gate1;
     if (rim && !gate) grid.set(x, height + 1, z, 'parapet', 'roof');
   }
+  // 室内电梯井洞口三边补一圈女儿墙（北沿留口当轿厢出口，同东侧 gate 的做法）——
+  // 井道与屋顶齐平后，洞口不能再靠井道高出屋顶的那截玻璃挡人，得自己围起来。
+  for (let z = ROOF_HATCH.z0; z < ROOF_HATCH.z1; z++) {
+    grid.set(ROOF_HATCH.x0 - 1, height + 1, z, 'parapet', 'roof');
+    grid.set(ROOF_HATCH.x1, height + 1, z, 'parapet', 'roof');
+  }
+  grid.set(ROOF_HATCH.x0, height + 1, ROOF_HATCH.z1, 'parapet', 'roof');
   // 二层楼板（loft）：只铺北半部，中央楼梯井留空（斜坡从中穿过、光与视线贯通）。
   grid.fill(LOFT.x0, LOFT.y - 1, LOFT.z0, LOFT.x1, LOFT.y, LOFT.z1, 'loft');
   for (let x = STAIRS.x0; x < STAIRS.x1; x++) for (let z = STAIRS.z0; z < STAIRS.z1; z++) grid.set(x, LOFT.y - 1, z, null);
@@ -350,15 +357,16 @@ export function buildRoofAccess(layer, materials) {
 }
 
 // 二层通屋顶观景台的室内玻璃观光电梯：占 x[3,4) 一格宽（原来的窄楼梯同一井道），
-// 从二层楼面（y=4）直上屋顶（y=9）。井道是四面玻璃的窄管、轿厢在里面上下；南面
-// （过厅侧）开二层门，北面上段整个敞开，人从轿厢一步跨上观景台。
+// 从二层楼面（y=4）直上屋顶（y=9）。井道是四面玻璃的窄管、顶与屋顶齐平不突出，
+// 轿厢从屋顶洞口（ROOF_HATCH）里穿行，升到顶时上半截露在洞口上方；南面
+// （过厅侧）开二层门，北面屋顶沿留口，人从轿厢一步跨上观景台。
 // 沿用引擎的梯子协议（ladderAt / route / levels / collides / pick / update），所以
 // 寻路、点击乘坐、自动升降都不用改；只是把「一级级走」换成「轿厢直上直下」。
 export function buildLoftLift(layer, materials) {
   const L = LOFT_LIFT;
   const cx = (L.x0 + L.x1) / 2, cz = (L.z0 + L.z1) / 2;
   const W = L.x1 - L.x0, D = L.z1 - L.z0;
-  const H = L.top + L.rise;                                  // 井道结构高：屋顶再上一层
+  const H = L.top;                                           // 井道顶与屋顶齐平，不突出
   const steel = { tex: 'steel' }, glass = { glass: true, tex: 'glass' };
   const stone = { tex: 'travertine' }, dark = { tex: 'black_metal' };
   const warm = { tex: 'paint', tint: 0xffe2b8, emissive: 0.9 };
@@ -382,16 +390,14 @@ export function buildLoftLift(layer, materials) {
   shell.box(cx, L.bottom + 2.61, L.z1, L.doorLoftX1 - L.doorLoftX0, H - (L.bottom + 2.61), 0.05, glass, { shadow: false });
   for (const y of [0.04, L.bottom, L.top, H - 0.06]) shell.box(cx, y, L.z1, W - 0.02, 0.05, 0.06, steel);
   for (const x of [L.x0 + 0.03, L.x1 - 0.03]) shell.box(x, 0, L.z1, 0.06, H, 0.06, steel);
-  // 北面（屋顶侧，z=z0）：门洞两侧玻璃通高；门洞过了屋顶面（y≥9）就完全敞开，
-  // 人从轿厢一步跨上观景台——不用再开门，省一道闸也不会挡视线。
+  // 北面（屋顶侧，z=z0）：门洞两侧玻璃通高；井道到屋顶面为止，洞口三边由
+  // buildRoof 补女儿墙、北沿留口——人从轿厢一步跨上观景台，不用再开门。
   shell.box((L.x0 + L.doorRoofX0) / 2, 0, L.z0, L.doorRoofX0 - L.x0, H, 0.05, glass, { shadow: false });
   shell.box((L.doorRoofX1 + L.x1) / 2, 0, L.z0, L.x1 - L.doorRoofX1, H, 0.05, glass, { shadow: false });
   for (const y of [0.04, L.bottom, L.top - 0.05]) shell.box(cx, y, L.z0, W - 0.02, 0.05, 0.06, steel);
-  for (const x of [L.doorRoofX0, L.doorRoofX1]) shell.box(x, L.top, L.z0, 0.06, H - L.top, 0.06, steel);
-  // 顶盖：一圈钢梁 + 一块玻璃。
-  for (const z of [L.z0, L.z1]) shell.box(cx, H, z, W + 0.22, 0.12, 0.14, steel);
-  for (const x of [L.x0, L.x1]) shell.box(x, H, cz, 0.14, 0.12, D + 0.22, steel);
-  shell.box(cx, H + 0.12, cz, W - 0.3, 0.04, D - 0.3, glass, { shadow: false });
+  // 洞口收边：一圈压顶钢梁贴着屋顶面（轿厢从中间穿过，碰不到边梁），代替原来的顶盖。
+  for (const z of [L.z0, L.z1]) shell.box(cx, H - 0.06, z, W + 0.22, 0.12, 0.14, steel);
+  for (const x of [L.x0, L.x1]) shell.box(x, H - 0.06, cz, 0.14, 0.12, D + 0.22, steel);
   // 四角内侧灯带：夜里井道自己发光。
   for (const x of [L.x0 + 0.1, L.x1 - 0.1]) for (const z of [L.z0 + 0.1, L.z1 - 0.1])
     shell.box(x, 0.35, z, 0.05, H - 1.1, 0.05, warm);
@@ -423,9 +429,9 @@ export function buildLoftLift(layer, materials) {
     g.position.set(x, 0, z);
     return g;
   }
-  const doorS = panel(cx, L.z1 - 0.06, dh), doorN = panel(cx, L.z0 + 0.06, L.rise - 0.08);
-  doorS.position.y = L.bottom; doorN.position.y = L.top;
-  group.add(doorS, doorN);
+  const doorS = panel(cx, L.z1 - 0.06, dh);
+  doorS.position.y = L.bottom;
+  group.add(doorS);
 
   // ---------- 引擎协议 ----------
   const pit = { x: cx, y: L.bottom, z: cz };
@@ -441,7 +447,7 @@ export function buildLoftLift(layer, materials) {
 
   function ladderAt(x, y, z) {
     if (x < L.x0 + 0.04 || x > L.x1 - 0.04 || z < L.z0 + 0.04 || z > L.z1 - 0.04) return null;
-    return y >= L.bottom - 0.2 && y <= L.top + L.rise ? ladder : null;
+    return y >= L.bottom - 0.2 && y <= L.top + 0.4 ? ladder : null;
   }
   function route(ax, ay, az, bx, by, bz) {
     if (Math.abs(by - ay) < 0.6) return [{ x: bx, y: by, z: bz }];   // 同层：直走
@@ -483,18 +489,18 @@ export function buildLoftLift(layer, materials) {
     }
     open += (want - open) * Math.min(1, dt * 4.5);
     doorS.position.y = L.bottom + open * dh;                 // 二层门往上收进门楣
-    doorN.scale.y = Math.max(0.06, 1 - open * 0.94);         // 顶层闸门往下折起来
   }
   update(0, null);
 
   return {
     group, foot: approach, approach, exit, ladder, ladderAt, route, update,
-    // 井道那格楼板是实心的，但 nav 把它标成障碍（stairBlock），所以要在这里补两层
-    // 站立面：y=4 站轿厢地板，y=9 站观景台面。
+    // 井道那格楼板是实心的，但 nav 把它标成障碍（stairBlock），所以要在这里补
+    // 站立面：y=4 站轿厢地板；y=9 只在轿厢到顶时给——洞口被轿厢顶住才踩得上去，
+    // 空井口不放面，玩家从屋顶走过来不会悬空踏进井里（北沿出口豁口没有闸门了）。
     levels(x, z, out) {
       if (x < L.x0 || x > L.x1 || z < L.z0 || z > L.z1) return;
       out.push({ y: L.bottom, site: 'loft-lift' });
-      out.push({ y: L.top, site: 'roof', tread: true });
+      if (Math.abs(cabY - L.top) < 0.3) out.push({ y: L.top, site: 'roof', tread: true });
     },
     // 井道玻璃是实心的，只放行南面二层门与北面顶层门。
     collides(x, feet, z) {
