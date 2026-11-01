@@ -340,7 +340,7 @@ async function boot() {
     openStation = id;
     panel.dataset.station = id;
     $('#panelTitle').textContent = page.querySelector('h2').textContent;
-    panel.querySelector('header .icon').style.backgroundImage = `url(${icon(publicStations.find(s => s.id === id).icon || id).url})`;
+    panel.querySelector('header .icon').style.backgroundImage = `url(${icon(publicStations.find(s => s.id === id)?.icon || id).url})`;
     const body = panel.querySelector('.body');
     mailboxForm.unmount();
     // An existing website (data-embed) shows inside the card, with ↗ to open it in a tab.
@@ -707,7 +707,7 @@ async function boot() {
     if (aimOk) aim.style.transform = `translate(${x}px, ${y}px)`;
     // Only pay for the extra ray once the crosshair has stopped asking for the web.
     const spotId = !aimOk && x >= 0 ? pick(x, y).spot?.id : null;
-    stage.renderer.domElement.style.cursor = aimOk ? 'none' : spotId === 'portal' || spotId === 'bed' ? 'pointer' : '';
+    stage.renderer.domElement.style.cursor = aimOk ? 'none' : spotId === 'portal' || spotId === 'bed' || (spotId && spotId.startsWith('book-')) ? 'pointer' : '';
   }
   function refreshAim() {
     if (rig.firstPerson) hover(innerWidth / 2, innerHeight / 2);
@@ -718,6 +718,7 @@ async function boot() {
     const target = pick(x, y);
     if (target.spot?.id === 'portal') { openPortal(); return; }
     if (target.spot?.id === 'bed') { goToBed(target.spot); return; }
+    if (target.spot?.id?.startsWith('book-')) { openPage(target.spot.id); return; }
     // A tap during the opening shot only cuts it short; it does not send
     // the player towards wherever the far-away view happened to be touched.
     if (rig.introActive) { rig.skipIntro(); return; }

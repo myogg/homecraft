@@ -419,6 +419,19 @@ export function furnish({ layer }) {
   foot(11.66, 2, 0.55, 3.7);
   for (const b of shelfBooks({ face: 11.54, z0: shelf.z0, z1: shelf.z1, shelves: shelf.shelves, seed: 2024 }))
     B.box(b.x, b.y, b.z, b.w, b.h, b.d, L.paint(b.tint), { rx: b.rx || 0, shadow: false });
+  // 书架中段三本「精装书」：比普通书略高、略向前突，醒目且可点击。
+  // 点击弹出简介 / 链接到文章（内容见 index.html 的 data-station="book-1/2/3"）。
+  const SHOW_BOOKS = [
+    { z: 1.0, tint: 0x8b1a1a, title: 'book-1' },   // 红
+    { z: 2.0, tint: 0x2c4a6e, title: 'book-2' },   // 蓝
+    { z: 3.0, tint: 0x3c5a4a, title: 'book-3' },   // 绿
+  ];
+  const bookY = 1.28, bookX = 11.54 + 0.015 + 0.10 + 0.04;   // 站立面 + 略前突
+  for (const bk of SHOW_BOOKS) {
+    B.box(bookX, bookY, bk.z, 0.20, 0.32, 0.05, L.paint(bk.tint), { shadow: false });
+    B.box(bookX, bookY + 0.30, bk.z, 0.008, 0.014, 0.042, L.paint(0xc9a86a)); // 烫金书名条
+    hot(bk.title, bookX, bookY, bk.z, 0.26, 0.36, 0.12);     // 可点击热区
+  }
   // 书房：长桌 + 多屏拼接（3×2 显示器墙，画面朝南）+ 多台主机 + 椅。
   const deskX = 7, deskZ = 1.5;
   const cols = 3, rows = 2, mw = 1.45, mh = 0.82, gp = 0.1;   // 多屏拼接

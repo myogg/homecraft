@@ -3,7 +3,7 @@
   "name": "姜小小的家",
   "url": "https://m.134688.xyz",
   "logo": "assets/favicon.png",
-  "intro": { "zh": "独立开发者 · 技术写作", "en": "Indie dev · Tech writing" },
+  "intro": { "zh": "写作随笔、博客小工具、编程自动化与城市记忆 —— 记录能记起的一切", "en": "Essays, blogs, tools, automation and city memories — recording what I recall" },
   "lang": ["zh", "en"],
   "homecraft": true
 }
