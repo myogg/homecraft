@@ -417,7 +417,7 @@ export function furnish({ layer }) {
   // 内凹 CRT（连连看牌阵）、红球摇杆 + 三色按钮 + 投币口。进门第一眼就是它。
   // 可点击，弹出怀旧卡片（index.html 的 data-station="arcade"）。
   {
-    const ax = 0.5, az = 0.5;
+    const ax = 1.25, az = 0.5;   // 右移 0.75 m，避开 x=-1 那张黑沙发从门口视角的遮挡
     const BLUE = 0x1b4fb0, DEEP = 0x102c66, SKY = 0x2f7de0,
           CREAM = 0xe8c46a, CREAM_L = 0xf2d98a, PANEL = 0x0d1428;
 

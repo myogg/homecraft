@@ -869,3 +869,84 @@ dialog#panel[data-station="portal"] { width: min(620px, calc(100vw - 40px)); hei
 }
 #debugStats b { font-weight: 600; }
 #debugStats .over { color: #ff7a6b; }
+
+/* ---------- QQ arcade: a playable 连连看 inside the cabinet's card ---------- */
+/* Fixed arcade-screen colours (not the GUI theme): it is a lit CRT, after all. */
+dialog#panel[data-station="arcade"] {
+  width: min(760px, calc(100vw - 28px)); height: fit-content;
+  max-height: calc(100dvh - 120px);
+}
+#panel[data-station="arcade"] .body { overflow-y: auto; overscroll-behavior: contain; padding: 0 2px 6px; }
+.arcade-game {
+  --cell: clamp(28px, 8vw, 50px);
+  position: relative; display: block; max-width: 100%; padding: 12px;
+  color: #eaf3ff; font: 500 13px/1.4 var(--text);
+  background: linear-gradient(160deg, #1b52b8, #0a2058 70%);
+  border: 3px solid #f2c14e; border-radius: 3px;
+  box-shadow: 0 0 0 2px #0a1a44, inset 2px 2px 0 rgba(255, 255, 255, .2), inset -2px -3px 0 rgba(0, 0, 0, .4);
+}
+.ag-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 10px; }
+.ag-chip { font-size: 12px; color: #dbe8ff; white-space: nowrap; }
+.ag-chip b { color: #ffd45e; font-weight: 700; }
+.ag-combo { padding: 1px 6px; color: #fff; background: #d8322a; }
+.ag-combo[hidden] { display: none; }
+.ag-time { flex: 1 1 90px; min-width: 70px; height: 10px; background: #071437; border: 1px solid #4d79c8; }
+.ag-time i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #7ed957, #f2c14e); transition: width .25s linear; }
+.ag-clock { font: 700 13px/1 var(--text); color: #ffd45e; font-variant-numeric: tabular-nums; }
+/* Half a cell of padding is the virtual ring a path may run around. */
+.ag-stage {
+  position: relative; width: fit-content; max-width: 100%; margin: 0 auto;
+  padding: calc(var(--cell) / 2); background: #0b2158;
+  box-shadow: inset 0 0 0 2px #2a58a8;
+}
+.ag-board { display: grid; grid-template-columns: repeat(var(--cols, 8), var(--cell)); grid-auto-rows: var(--cell); }
+.ag-tile {
+  width: var(--cell); height: var(--cell); margin: 0; padding: 0; border: 0;
+  display: grid; place-items: center; cursor: pointer;
+  font-size: calc(var(--cell) * .56); line-height: 1; color: #2a2118;
+  background: linear-gradient(160deg, #fff0c8, #e8c477);
+  box-shadow: inset 1px 1px 0 #fff9e2, inset -2px -2px 0 #b07a34, 0 0 0 1px #7a4a18;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, opacity .2s ease, filter .12s ease;
+}
+.ag-sym {
+  display: block; width: 58%; height: 58%; pointer-events: none;
+  background: var(--symc); clip-path: var(--sym);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .22));
+}
+.ag-tile.is-empty { background: rgba(255, 255, 255, .045); box-shadow: inset 0 0 0 1px rgba(120, 160, 230, .18); cursor: default; }
+.ag-tile.is-sel { background: linear-gradient(160deg, #fff8dc, #ffd66b); box-shadow: 0 0 0 2px #ff5a3c, inset 1px 1px 0 #fff; transform: scale(.93); }
+.ag-tile.is-hint { animation: ag-hint .45s ease-in-out infinite alternate; }
+@keyframes ag-hint { from { box-shadow: 0 0 0 2px #ffe45e; } to { box-shadow: 0 0 0 4px #ff8a3c, 0 0 12px #ffb03c; } }
+.ag-tile.is-bad { animation: ag-bad .22s ease-in-out 2; }
+@keyframes ag-bad { 50% { transform: translateX(3px); } }
+.ag-tile.is-gone { transform: scale(.15) rotate(14deg); opacity: 0; filter: brightness(2); }
+.ag-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ag-over {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; padding: 10px;
+  background: rgba(6, 18, 50, .9); text-align: center;
+}
+.ag-over[hidden] { display: none; }
+.ag-over b { font: 700 clamp(18px, 4.6vw, 26px)/1.2 var(--text); color: #ffd45e; text-shadow: 2px 2px 0 #7a3a10; letter-spacing: .1em; }
+.ag-over small { font: 500 12px/1.5 var(--text); color: #bcd2ff; }
+.ag-tip { margin: 10px 0 8px; text-align: center; font-size: 12px; color: #a9c4f5; }
+.ag-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ag-btn {
+  min-height: 36px; padding: 0 12px; border: 0; cursor: pointer;
+  font: 600 13px/1 var(--text); color: #fff; text-shadow: 1px 1px 0 rgba(0, 0, 0, .4);
+  background: #2f6fd0;
+  box-shadow: 0 0 0 2px #0a1a44, inset 2px 2px 0 rgba(255, 255, 255, .3), inset -2px -3px 0 rgba(0, 0, 0, .35);
+}
+.ag-btn:hover { background: #3f86ec; }
+.ag-btn:active { transform: translateY(1px); }
+.ag-btn em { font-style: normal; color: #ffe27a; }
+.ag-main { min-width: 140px; margin-top: 6px; background: #d8322a; font-size: 15px; letter-spacing: .15em; }
+.ag-main:hover { background: #ec4a3e; }
+.ag-status { min-height: 17px; margin-top: 9px; text-align: center; font: 600 12px/1.4 var(--text); color: #ffd45e; }
+.ag-credit {
+  margin: 10px 0 2px !important; padding: 6px 10px; font-size: 13px !important;
+  color: #dbe8ff !important; background: rgba(10, 26, 68, .82); border-radius: 2px;
+}
+.ag-credit a { color: #ffd45e; }

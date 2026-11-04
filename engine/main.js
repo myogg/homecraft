@@ -1,4 +1,5 @@
 import { pageURL, mountEmbed } from './ui/embed.js';
+import { mountArcade, unmountArcade } from './arcade.js';
 // Homecraft: boots the world (`@world/`), puts the player in it, and wires the
 // Dock, the radar, the pages (index.html), the phone and the portal together.
 // A world's build.js may also export setup(app) for its own moving parts.
@@ -329,6 +330,7 @@ async function boot() {
   panel.querySelector('header .close').before(popOut);
   let openStation = null;
   function openPage(id) {
+    unmountArcade();                     // stop the arcade game whenever a page changes
     if (id === 'portal') { openPortal(); return; }
     if (!publicStations.some(s => s.id === id)) return;
     const page = pageEl(id);
@@ -358,6 +360,7 @@ async function boot() {
     for (const li of body.querySelectorAll('[data-icon]')) li.style.setProperty('--icon', `url(${icon(li.dataset.icon).url})`);
     workbench.mount(body);
     mailboxForm.mount(body);
+    if (id === 'arcade') mountArcade(body);
     placePortalControls(panel);
     if (!panel.open) panel.showModal();
     // On a phone the radar and switches step aside while a page is open.
@@ -392,7 +395,7 @@ async function boot() {
   // a card down. Both ends of the press must miss the cards and controls,
   // so a drag that wanders off a card does not count and text on a card
   // stays selectable.
-  const keepsOpen = target => target.closest('.work-deck > li, .about, .world-directory, button, a, form');
+  const keepsOpen = target => target.closest('.work-deck > li, .about, .world-directory, button, a, form, .arcade-game');
   let pressedOutside = false;
   panel.addEventListener('pointerdown', e => { pressedOutside = !keepsOpen(e.target); });
   panel.addEventListener('click', e => { if (pressedOutside && !keepsOpen(e.target)) closePage(); });
@@ -406,6 +409,7 @@ async function boot() {
   });
   panel.addEventListener('close', () => {
     if (panel.open) return;
+    unmountArcade();
     worldList.destroy();
     mailboxForm.unmount();
     placePortalControls($('#hud'));
