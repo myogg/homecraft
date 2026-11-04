@@ -412,6 +412,141 @@ export function furnish({ layer }) {
   // 客厅电脑（北墙基座前的书桌 + 显示器，观者从南侧看屏幕）。
   deskComp(-10, 0.9, 0); foot(-10, 0.9, 2.5, 1);
 
+  // ===== 一层：QQ 复古街机（中庭北墙前，背靠 z=0 基座实墙、屏幕朝南正对大门）=====
+  // 照「QQ 欢乐街机厅」的样子：宝蓝机身 + 奶油黄屏框/灯箱、两侧蓝色弧形侧翼、
+  // 内凹 CRT（连连看牌阵）、红球摇杆 + 三色按钮 + 投币口。进门第一眼就是它。
+  // 可点击，弹出怀旧卡片（index.html 的 data-station="arcade"）。
+  {
+    const ax = 0.5, az = 0.5;
+    const BLUE = 0x1b4fb0, DEEP = 0x102c66, SKY = 0x2f7de0,
+          CREAM = 0xe8c46a, CREAM_L = 0xf2d98a, PANEL = 0x0d1428;
+
+    // 屏幕画面：QQ 连连看——蓝白 UI + 橙色麻将牌阵 + 今日高手榜 + 道具栏
+    const AW = 512, AH = 360;
+    const arcadeTex = paint(AW, AH, (c, w, h) => {
+      const bg = c.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#2a5fd0'); bg.addColorStop(1, '#0e2a72');
+      c.fillStyle = bg; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#eaf3ff'; c.fillRect(0, 0, w, 34);                    // 顶栏
+      c.fillStyle = '#d8322a'; c.fillRect(8, 7, 46, 20);
+      c.fillStyle = '#fff'; c.font = 'bold 14px sans-serif'; c.fillText('QQ', 15, 22);
+      c.fillStyle = '#123a8a'; c.font = 'bold 17px sans-serif'; c.fillText('连连看 · 对对碰', 66, 24);
+      c.fillStyle = '#5a7bb5'; c.font = '12px sans-serif'; c.textAlign = 'right';
+      c.fillText('第 3 关   02:48   8,880 分', w - 10, 22); c.textAlign = 'left';
+      const gx = 14, gy = 46, gw = 344, gh = 250;                         // 牌阵
+      c.fillStyle = '#0b2158'; c.fillRect(gx, gy, gw, gh);
+      c.strokeStyle = '#5b8ae0'; c.lineWidth = 2; c.strokeRect(gx, gy, gw, gh);
+      const cols = 8, rows = 5, cw = gw / cols, ch = gh / rows;
+      const glyphs = ['#e05a3a', '#3d7fd6', '#4ba36a', '#e8a83a', '#8d5ac4', '#d15f8e'];
+      for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
+        if ((r === 0 || r === rows - 1) && (k === 0 || k === cols - 1)) continue;  // 四角留空
+        const x = gx + k * cw + 3, y = gy + r * ch + 3, bw = cw - 6, bh = ch - 6;
+        c.fillStyle = '#f6e2ad'; c.fillRect(x, y, bw, bh);
+        c.strokeStyle = '#c98b3e'; c.lineWidth = 2; c.strokeRect(x, y, bw, bh);
+        c.fillStyle = glyphs[(r * 3 + k * 5) % glyphs.length];
+        c.beginPath(); c.arc(x + bw / 2, y + bh / 2, Math.min(bw, bh) * 0.24, 0, 7); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(x + 4, y + 4, bw - 8, 3);
+      }
+      const rx = 370, rw = w - rx - 12;                                    // 今日高手榜
+      c.fillStyle = '#eaf3ff'; c.fillRect(rx, 46, rw, 118);
+      c.fillStyle = '#d8322a'; c.fillRect(rx, 46, rw, 22);
+      c.fillStyle = '#fff'; c.font = 'bold 13px sans-serif'; c.fillText('今日高手榜', rx + 8, 62);
+      for (let i = 0; i < 3; i++) {
+        const y = 78 + i * 28;
+        c.fillStyle = i === 0 ? '#f2c14e' : '#9fb6dd';
+        c.beginPath(); c.arc(rx + 14, y + 7, 8, 0, 7); c.fill();
+        c.fillStyle = '#123a8a'; c.font = '12px sans-serif';
+        c.fillText(['阿企 98,200', '网友 76,540', '小鱼 61,330'][i], rx + 28, y + 12);
+      }
+      c.fillStyle = '#123a8a'; c.fillRect(rx, 172, rw, 74);               // 玩家卡片
+      c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.fillText('玩家：姜小小', rx + 8, 190);
+      c.fillStyle = '#9fd0ff'; c.font = '11px sans-serif'; c.fillText('连击 x4 · 剩余 32 对', rx + 8, 210);
+      c.fillStyle = '#f2c14e'; c.fillRect(rx + 8, 220, rw - 16, 12);
+      c.fillStyle = '#d8322a'; c.fillRect(rx + 8, 220, (rw - 16) * 0.62, 12);
+      c.fillStyle = '#eaf3ff'; c.fillRect(14, 304, w - 28, 44);           // 道具栏
+      for (let i = 0; i < 4; i++) {
+        const x = 22 + i * 88;
+        c.fillStyle = ['#e8a83a', '#4ba36a', '#3d7fd6', '#d15f8e'][i];
+        c.fillRect(x, 312, 74, 28);
+        c.fillStyle = '#fff'; c.font = 'bold 12px sans-serif';
+        c.fillText(['提示 (5)', '洗牌 (3)', '炸弹 (1)', '暂停'][i], x + 8, 331);
+      }
+      c.fillStyle = '#d8322a'; c.fillRect(w - 104, 312, 88, 28);
+      c.fillStyle = '#fff'; c.font = 'bold 13px sans-serif'; c.fillText('投币开始', w - 96, 331);
+    });
+
+    // 顶部灯箱招牌：蓝底 + 黄描边 + 红围巾小企鹅 + 「QQ 游戏」
+    const MW = 384, MH = 112;
+    const marqueeTex = paint(MW, MH, (c, w, h) => {
+      c.fillStyle = '#123a8a'; c.fillRect(0, 0, w, h);
+      c.strokeStyle = '#f2c14e'; c.lineWidth = 6; c.strokeRect(6, 6, w - 12, h - 12);
+      const px = 58, py = 60;                                              // 简笔 QQ 企鹅
+      c.fillStyle = '#1b1b1b';
+      c.beginPath(); c.ellipse(px, py + 6, 26, 34, 0, 0, 7); c.fill();
+      c.beginPath(); c.arc(px, py - 24, 22, 0, 7); c.fill();
+      c.fillStyle = '#f4f4f4';
+      c.beginPath(); c.ellipse(px, py + 12, 17, 24, 0, 0, 7); c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath(); c.ellipse(px - 8, py - 27, 7, 9, 0, 0, 7); c.fill();
+      c.beginPath(); c.ellipse(px + 8, py - 27, 7, 9, 0, 0, 7); c.fill();
+      c.fillStyle = '#1b1b1b';
+      c.beginPath(); c.arc(px - 8, py - 25, 3, 0, 7); c.fill();
+      c.beginPath(); c.arc(px + 8, py - 25, 3, 0, 7); c.fill();
+      c.fillStyle = '#f2a83a';
+      c.beginPath(); c.moveTo(px - 7, py - 16); c.lineTo(px + 7, py - 16); c.lineTo(px, py - 7); c.closePath(); c.fill();
+      c.fillStyle = '#d8322a'; c.fillRect(px - 22, py - 6, 44, 9);        // 红围巾
+      c.fillStyle = '#f2c14e'; c.font = 'bold 60px sans-serif';
+      c.fillText('QQ 游戏', 110, 76);
+      c.fillStyle = '#fff'; c.font = 'bold 14px sans-serif';
+      c.fillText('童 年 回 忆 · 投 币 一 枚', 112, 98);
+    });
+
+    // 底座与下箱体 + 投币口
+    B.box(ax, 0, az, 1.16, 0.12, 0.9, L.paint(DEEP));
+    B.box(ax, 0.12, az, 1.12, 0.78, 0.86, L.paint(BLUE));
+    B.box(ax, 0.42, 0.935, 0.46, 0.3, 0.03, L.paint(0x0e1c3a));
+    for (const dx of [-0.1, 0.1]) {
+      B.box(ax + dx, 0.52, 0.955, 0.055, 0.09, 0.02, L.steel);
+      B.box(ax + dx, 0.6, 0.966, 0.03, 0.012, 0.008, L.paint(0x05070c));  // 投币缝
+    }
+    B.box(ax, 0.44, 0.955, 0.2, 0.03, 0.02, L.light(0x3b8cff));
+    // 控制台（前伸）+ 台面 + 前沿
+    B.box(ax, 0.9, 0.72, 1.18, 0.12, 1.1, L.paint(0x17224a));
+    B.box(ax, 1.0, 0.74, 1.1, 0.02, 0.96, L.paint(PANEL));
+    B.box(ax, 0.9, 1.25, 1.18, 0.15, 0.05, L.paint(BLUE));
+    // 红球摇杆
+    B.box(ax - 0.3, 1.02, 0.78, 0.16, 0.025, 0.16, L.paint(0x05070c));
+    B.box(ax - 0.3, 1.045, 0.78, 0.035, 0.17, 0.035, L.steel);
+    B.box(ax - 0.3, 1.215, 0.78, 0.13, 0.12, 0.13, L.paint(0xd8322a));
+    // 三色按钮 + 中间小牌
+    for (const [dx, col] of [[0.06, 0xf2c14e], [0.24, 0x3aa0e8], [0.42, 0xe0663a]])
+      B.box(ax + dx, 1.02, 0.78, 0.12, 0.055, 0.12, L.light(col));
+    B.box(ax - 0.03, 1.02, 1.0, 0.2, 0.012, 0.14, L.paint(0xe8eef6));
+    // 屏幕舱：奶油黄外壳 + 内凹黑腔 + 四边亮黄框 + CRT 屏面
+    B.box(ax, 1.02, 0.38, 1.12, 0.86, 0.62, L.paint(CREAM));
+    B.box(ax, 1.08, 0.695, 0.96, 0.7, 0.02, L.paint(0x080b12));
+    for (const dx of [-0.51, 0.51]) B.box(ax + dx, 1.05, 0.705, 0.1, 0.8, 0.04, L.paint(CREAM_L));
+    B.box(ax, 1.82, 0.705, 1.12, 0.08, 0.04, L.paint(CREAM_L));
+    B.box(ax, 1.02, 0.705, 1.12, 0.06, 0.04, L.paint(CREAM_L));
+    plane(0.86, 0.62, arcadeTex, ax, 1.44, 0.713, 0, true);
+    // 顶部灯箱（前凸）+ 招牌画面 + 顶发光条
+    B.box(ax, 1.88, 0.42, 1.24, 0.42, 0.68, L.paint(BLUE));
+    for (const dx of [-0.6, 0.6]) B.box(ax + dx, 1.88, 0.765, 0.04, 0.42, 0.02, L.paint(CREAM_L));
+    B.box(ax, 1.88, 0.765, 1.24, 0.035, 0.02, L.paint(CREAM_L));
+    B.box(ax, 2.265, 0.765, 1.24, 0.035, 0.02, L.paint(CREAM_L));
+    plane(1.12, 0.32, marqueeTex, ax, 2.09, 0.772, 0, true);
+    B.box(ax, 2.3, 0.42, 1.26, 0.06, 0.7, L.light(0x3b8cff));
+    // 两侧蓝色弧形侧翼（越高越往里收）+ 发光前缘
+    for (const s of [-1, 1]) for (let i = 0; i < 5; i++) {
+      const y = 0.95 + i * 0.27, front = 1.18 - i * 0.065, d = front - 0.08;
+      B.box(ax + s * 0.605, y, 0.08 + d / 2, 0.09, 0.28, d, L.paint(SKY));
+      B.box(ax + s * 0.605, y, front + 0.012, 0.05, 0.28, 0.03, L.light(0x3b8cff));
+    }
+    foot(ax, 0.62, 1.25, 1.15);
+    hot('arcade', ax, 0, 0.7, 1.4, 2.4, 1.35);
+    bake('arcade', ax, 1.45, 1.15, 1.15, 5.5, [0, -0.3, 1]);
+  }
+
   // ===== 一层：书房（东南，x[2,12] z[0,4]）=====
   // 东墙通顶书架：木框架 + 一层层真书（书脊、书名条、斜靠和横放的都是独立方块）。
   const shelf = shelfFrames({ face: 11.54, back: 11.96, cz: 2, width: 3.6, height: 3.4 });
