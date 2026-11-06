@@ -770,9 +770,15 @@ export function furnish({ layer }) {
   for (const [x, z, yaw] of [[4.6, 4.6, Math.PI], [4.6, 6.2, 0], [3.6, 5.4, -Math.PI / 2], [5.6, 5.4, Math.PI / 2]]) diningChair(x, z, yaw);
   roundedInstances(diningChairFrameParts, 'realistic-dining-chair-frames', woodMaterial);
   roundedInstances(diningChairCushionParts, 'realistic-dining-chair-upholstery');
-  B.box(4.6, 0, 5.4, 1.9, 0.08, 1.0, L.marble); foot(4.6, 5.4, 2.0, 1.1);
-  for (const dx of [-0.9, 0.9]) for (const dz of [-0.55, 0.55]) B.box(4.6 + dx, 0, 5.4 + dz, 0.06, 0.78, 0.06, L.steel);
-  diningChair(4.6, 4.6, 0); diningChair(4.6, 6.2, Math.PI); diningChair(3.6, 5.4, -Math.PI / 2); diningChair(5.6, 5.4, Math.PI / 2);
+  // 餐桌：圆角胡桃木桌面、围板和四条收进桌沿的木腿。
+  const diningTableParts = [
+    [4.6, 0.77, 5.4, 2.02, 0.14, 1.19, 0, 0x916e4b],
+    [4.6, 0.65, 5.4, 1.72, 0.20, 0.95, 0, 0x76553a],
+  ];
+  for (const dx of [-0.72, 0.72]) for (const dz of [-0.34, 0.34])
+    diningTableParts.push([4.6 + dx, 0.37, 5.4 + dz, 0.10, 0.88, 0.10, 0, 0x60432e]);
+  roundedInstances(diningTableParts, 'realistic-dining-table', woodMaterial);
+  foot(4.6, 5.4, 2.0, 1.1);
   bake('dining', 4.6, 1.6, 5.4, 1.4, 5, [0, -1, 0]);
 
   // ===== 一层：休息区（西南角，x[-12,-9] z[7,10]，北面全开）=====
@@ -781,19 +787,31 @@ export function furnish({ layer }) {
   // 地毯：深一档的灰米色——原来用亚麻色，跟浅地板糊成一片，看不出边。
   B.box(-10.5, 0.004, 8.5, 2.68, 0.018, 2.78, L.paint(0x8b8474));
   B.box(-10.5, 0.022, 8.5, 2.46, 0.006, 2.56, L.paint(0x9c9585));
-  // 三人沙发：贴南墙、朝北。进门迎面是座面而不是靠背，坐下正对点歌台与客厅。
-  // 木底框 + 木脚把柜体托离地面；布面用灰绿、坐垫用米白，两档拉开才不会读成床。
-  for (const dx of [-0.7, 0.7]) for (const dz of [-0.38, 0.34])
-    B.box(-10.5 + dx, 0, 9.3 + dz, 0.07, 0.1, 0.07, L.paint(0x5b4a37));   // 木脚
-  B.box(-10.5, 0.1, 9.3, 1.82, 0.14, 1.0, L.wood);                       // 底框
-  B.box(-10.5, 0.24, 9.28, 1.76, 0.2, 0.94, L.paint(0x8f968c));          // 座箱
-  B.box(-10.5, 0.44, 9.55, 1.76, 0.72, 0.28, L.paint(0x9aa196));         // 靠背
-  B.box(-10.5, 0.5, 9.4, 1.66, 0.6, 0.08, L.linen);                      // 靠背软包
-  B.box(-10.5, 1.16, 9.55, 1.76, 0.035, 0.3, L.wood);                    // 背沿
-  for (const ax of [-11.33, -9.67]) B.box(ax, 0.44, 9.3, 0.2, 0.42, 0.94, L.paint(0x9aa196)); // 扶手
-  for (const ax of [-10.98, -10.02]) B.box(ax, 0.44, 8.86, 0.8, 0.16, 0.84, L.paint(0xe4ddd0)); // 坐垫
-  B.box(-10.9, 0.6, 9.34, 0.3, 0.3, 0.13, L.paint(0xb08a68), { rx: 0.16 });  // 抱枕
-  B.box(-10.1, 0.6, 9.34, 0.3, 0.3, 0.13, L.paint(0xd6cfbe), { rx: -0.12 });
+  // 三人沙发：朝北，改为胡桃木底座、三段坐垫与独立靠背软包。
+  const loungeSofaWoodParts = [
+    [-10.5, 0.17, 9.3, 2.10, 0.20, 1.08, 0, 0x63472f],
+    [-10.5, 0.34, 9.22, 1.94, 0.15, 0.82, 0, 0x76553a],
+    [-10.5, 1.18, 9.68, 2.12, 0.09, 0.13, 0, 0x63472f],
+  ];
+  for (const dx of [-0.78, 0.78])
+    loungeSofaWoodParts.push([-10.5 + dx, 0.80, 9.61, 0.17, 0.87, 0.28, 0, 0x76553a]);
+  for (const dx of [-0.72, 0.72]) for (const dz of [-0.36, 0.36])
+    loungeSofaWoodParts.push([-10.5 + dx, 0.07, 9.3 + dz, 0.11, 0.17, 0.11, 0, 0x60432e]);
+  const loungeSofaFabricParts = [];
+  for (const dx of [-0.78, 0.78]) {
+    loungeSofaWoodParts.push([-10.5 + dx, 0.58, 9.25, 0.25, 0.50, 1.04, 0, 0x60432e]);
+    loungeSofaFabricParts.push([-10.5 + dx, 0.60, 9.25, 0.31, 0.49, 1.00, 0, 0x8f968c]);
+  }
+  for (const dx of [-0.46, 0, 0.46]) {
+    loungeSofaFabricParts.push([-10.5 + dx, 0.50, 8.98, 0.54, 0.23, 0.91, 0, 0xe4ddd0]);
+    loungeSofaFabricParts.push([-10.5 + dx, 0.82, 9.47, 0.52, 0.70, 0.18, 0, 0x8f968c]);
+  }
+  loungeSofaFabricParts.push(
+    [-11.07, 0.85, 9.33, 0.43, 0.43, 0.22, -0.12, 0xb08a68],
+    [-9.93, 0.85, 9.33, 0.43, 0.43, 0.22, 0.12, 0xd6cfbe],
+  );
+  roundedInstances(loungeSofaWoodParts, 'realistic-lounge-sofa-frame', woodMaterial);
+  roundedInstances(loungeSofaFabricParts, 'realistic-lounge-sofa-upholstery');
   foot(-10.5, 9.3, 1.86, 1.05);
   // 矮几：整块原木台面 + 木腿，下层搁杂志。不用大理石——深绿纹在这间里像台球桌。
   B.box(-10.5, 0.4, 8.15, 0.96, 0.05, 0.64, L.wood);
