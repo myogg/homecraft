@@ -69,6 +69,26 @@ export function furnish({ layer }) {
     planes.push(mesh);
     return mesh;
   };
+  // Reusable, low-draw-call hardware for the home's warm metal and tapered
+  // fabric lampshades. These decorative meshes do not add real-time lights.
+  const lampShadeGeometry = new THREE.CylinderGeometry(0.56, 1, 1, 24, 1, true);
+  const lampShadeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  const lampMetalParts = [], lampShadeParts = [];
+  const fixturePart = (parts, x, y, z, sx, sy, sz, tint = 0xffffff, rotation = [0, 0, 0]) =>
+    parts.push([x, y, z, sx, sy, sz, tint, ...rotation]);
+  const fixtureMesh = (items, geometry, material, name) => {
+    if (!items.length) return;
+    const mesh = new THREE.InstancedMesh(geometry, material, items.length), part = new THREE.Object3D();
+    mesh.name = name;
+    for (let i = 0; i < items.length; i++) {
+      const [x, y, z, sx, sy, sz, tint = 0xffffff, rx = 0, ry = 0, rz = 0] = items[i];
+      part.position.set(x, y, z); part.rotation.set(rx, ry, rz); part.scale.set(sx, sy, sz); part.updateMatrix();
+      mesh.setMatrixAt(i, part.matrix); mesh.setColorAt(i, new THREE.Color(tint));
+    }
+    mesh.instanceMatrix.needsUpdate = true; mesh.instanceColor.needsUpdate = true;
+    mesh.castShadow = false; mesh.receiveShadow = true; mesh.computeBoundingSphere();
+    planes.push(mesh);
+  };
   const weaveCanvas = document.createElement('canvas');
   weaveCanvas.width = weaveCanvas.height = 128;
   const weave = weaveCanvas.getContext('2d');
@@ -107,10 +127,11 @@ export function furnish({ layer }) {
   const woodMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: woodTexture, roughness: 0.72 });
   // 吊灯：杆从 y+0.62 直上屋顶（HOUSE.height），灯体挂在 y 处。
   const pendant = (x, z, y) => {
-    B.box(x, y + 0.62, z, 0.04, HOUSE.height - y - 0.62, 0.04, L.steel);
-    for (const dx of [-0.19, 0.19]) for (const dz of [-0.19, 0.19]) B.box(x + dx, y, z + dz, 0.035, 0.62, 0.035, L.steel);
-    for (const dy of [0, 0.58]) B.box(x, y + dy, z, 0.42, 0.04, 0.42, L.steel);
-    B.box(x, y + 0.06, z, 0.3, 0.48, 0.3, L.light(0xffdfa8));
+    B.box(x, y + 0.40, z, 0.025, HOUSE.height - y - 0.40, 0.025, L.steel);
+    fixturePart(lampMetalParts, x, HOUSE.height - 0.035, z, 0.13, 0.07, 0.13, 0x98764d);
+    fixturePart(lampMetalParts, x, y + 0.405, z, 0.095, 0.05, 0.095, 0x98764d);
+    fixturePart(lampShadeParts, x, y + 0.25, z, 0.18, 0.32, 0.18, 0xf0e7d8);
+    B.box(x, y + 0.06, z, 0.24, 0.06, 0.24, L.light(0xffdfa8));
     bake('pendant', x, y + 0.2, z, 3.2, 13, [0, -1, 0]);
   };
   const ly = LOFT.y;
@@ -149,7 +170,9 @@ export function furnish({ layer }) {
       bedsideParts.push([x + sx, y + 0.625, z - 1.4, 0.86, 0.05, 0.86, 0, 0x5b402d]);
       bedsideParts.push([x + sx, y + 0.32, z - 0.96, 0.66, 0.30, 0.055, 0, 0x927050]);
       B.box(x + sx, y + 0.29, z - 0.92, 0.12, 0.035, 0.035, L.steel);
-      B.box(x + sx, y + 0.65, z - 1.4, 0.2, 0.3, 0.2, L.light(0xffdfa8));
+      fixturePart(lampMetalParts, x + sx, y + 0.735, z - 1.4, 0.04, 0.07, 0.04, 0x98764d);
+      fixturePart(lampShadeParts, x + sx, y + 0.81, z - 1.4, 0.13, 0.22, 0.13, 0xf0e7d8);
+      B.box(x + sx, y + 0.65, z - 1.4, 0.16, 0.05, 0.16, L.light(0xffdfa8));
       foot(x + sx, z - 1.4, 0.95, 0.95, 1);
     }
     roundedInstances(bedsideParts, `realistic-${side}-bedside-table`, woodMaterial);
@@ -567,7 +590,9 @@ export function furnish({ layer }) {
   };
   // 落地灯与吊灯（挪到沙发东侧，避开西侧楼梯）。
   B.box(1.5, 0, 5.4, 0.5, 0.055, 0.5, L.steel); B.box(1.5, 0.055, 5.4, 0.065, 1.72, 0.065, L.steel);
-  B.box(1.5, 1.75, 5.4, 0.7, 0.25, 0.7, L.linen); B.box(1.5, 1.728, 5.4, 0.56, 0.025, 0.56, L.light(0xffe4ba));
+  fixturePart(lampMetalParts, 1.5, 1.78, 5.4, 0.085, 0.05, 0.085, 0x98764d);
+  fixturePart(lampShadeParts, 1.5, 1.90, 5.4, 0.31, 0.28, 0.31, 0xf0e7d8);
+  B.box(1.5, 1.74, 5.4, 0.46, 0.025, 0.46, L.light(0xffe4ba));
   foot(1.5, 5.4, 0.55, 0.55); bake('living-lamp', 1.5, 1.72, 5.4, 1.05, 5.8, [0, -1, 0]);
   pendant(0, 3, 5.6);
   // 客厅电脑（北墙基座前的书桌 + 显示器，观者从南侧看屏幕）。
@@ -770,6 +795,7 @@ export function furnish({ layer }) {
   B.box(7, 0.9, 7.2, 3.8, 0.12, 1.5, L.marble); foot(7, 7.2, 3.9, 1.6);
   B.box(7, 2.75, 7.2, 0.025, HOUSE.height - 2.75, 0.025, L.steel, { shadow: false });
   B.box(7, 2.66, 7.2, 1.65, 0.09, 0.22, L.steel);
+  for (const dx of [-0.77, 0.77]) B.box(7 + dx, 2.66, 7.2, 0.055, 0.11, 0.25, L.steel);
   B.box(7, 2.637, 7.2, 1.48, 0.025, 0.15, L.light(0xffe4ba)); bake('island-pendant', 7, 2.62, 7.2, 1.45, 5, [0, -1, 0]);
 
   // ===== 一层：餐厅（厨房北侧空地，x[3,6] z[4,7]）=====
@@ -855,7 +881,8 @@ export function furnish({ layer }) {
   // 远看像站在院子里。
   B.box(-9.42, 0, 7.28, 0.32, 0.045, 0.32, L.paint(0x26282a));
   B.box(-9.42, 0.045, 7.28, 0.045, 1.56, 0.045, L.paint(0x26282a));
-  B.box(-9.42, 1.6, 7.28, 0.38, 0.3, 0.38, L.paint(0xf0e6d2));           // 灯罩
+  fixturePart(lampMetalParts, -9.42, 1.755, 7.28, 0.075, 0.05, 0.075, 0x98764d);
+  fixturePart(lampShadeParts, -9.42, 1.60, 7.28, 0.19, 0.28, 0.19, 0xf0e7d8); // tapered linen shade
   B.box(-9.42, 1.585, 7.28, 0.3, 0.02, 0.3, L.light(0xffdfae));          // 罩底发光面
   foot(-9.42, 7.28, 0.36, 0.36);
   bake('lounge', -9.38, 1.55, 7.3, 1.15, 4.8, [0, -1, 0]);
@@ -1016,7 +1043,7 @@ export function furnish({ layer }) {
   // 小射灯：一根从墙里伸出的钢杆 + 铜灯罩，暖光打在画心上（夜里也亮）。
   const pictureLight = (cx, top) => {
     B.box(cx, top + 0.14, -2.90, 0.03, 0.03, 0.24, L.steel);
-    B.box(cx, top + 0.10, -2.70, 0.14, 0.08, 0.14, L.paint(0x9a7649));
+    fixturePart(lampMetalParts, cx, top + 0.14, -2.70, 0.075, 0.09, 0.075, 0x9a7649);
     B.box(cx, top + 0.08, -2.70, 0.10, 0.02, 0.10, L.light(0xffe0b0));
     bake('photo', cx, top - 0.12, -2.60, 0.7, 2.0, [0, -0.6, -1]);
   };
@@ -1037,19 +1064,30 @@ export function furnish({ layer }) {
     B.box(x, dy + 2.0, z, 0.06, 0.06, 3.2, L.paint(0xd14b3a));
   };
   umbrella(-8, -6); umbrella(8, 6);
-  for (const [x, z] of [[-10, 8], [10, -8]]) { B.box(x, dy, z, 0.3, 0.06, 0.3, L.steel); B.box(x, dy + 0.06, z, 0.22, 0.5, 0.22, L.light(0xffe4ba)); }
+  for (const [x, z] of [[-10, 8], [10, -8]]) {
+    B.box(x, dy, z, 0.3, 0.06, 0.3, L.steel);
+    B.box(x, dy + 0.07, z, 0.15, 0.38, 0.15, L.light(0xffe4ba));
+    for (const dx of [-0.09, 0.09]) for (const dz of [-0.09, 0.09]) B.box(x + dx, dy + 0.08, z + dz, 0.018, 0.36, 0.018, L.steel);
+    B.box(x, dy + 0.44, z, 0.24, 0.06, 0.24, L.steel);
+  }
   bake('deck-lights', 0, dy + 0.5, 0, 4, 18, [0, -1, 0]);
 
   // ===== 室外：入户门两侧壁灯（夜间随灯光烘焙自动点亮，照亮门廊）=====
   for (const lx of [-2.75, 2.75]) {
-    B.box(lx, 2.15, HOUSE.z1 + 0.56, 0.34, 0.24, 0.12, L.steel);                       // 灯座
-    B.box(lx, 2.15, HOUSE.z1 + 0.62, 0.24, 0.15, 0.05, L.light(0xffdca8));              // 灯罩（自发光）
+    B.box(lx, 2.08, HOUSE.z1 + 0.56, 0.34, 0.30, 0.12, L.steel);                       // backplate
+    B.box(lx, 2.12, HOUSE.z1 + 0.62, 0.17, 0.20, 0.05, L.light(0xffdca8));              // frosted lantern glass
+    for (const dx of [-0.11, 0.11]) B.box(lx + dx, 2.11, HOUSE.z1 + 0.65, 0.025, 0.22, 0.07, L.steel);
+    B.box(lx, 2.33, HOUSE.z1 + 0.65, 0.26, 0.035, 0.07, L.steel);
+    B.box(lx, 2.08, HOUSE.z1 + 0.65, 0.26, 0.035, 0.07, L.steel);
     bake('porch-lamp', lx, 2.15, HOUSE.z1 + 0.8, 1.7, 6.5, [0, 1, 0]);
   }
 
   // ===== 室外：泳池（岛南草坪，紧邻房屋西侧）=====
   // 池壁低处的夜灯：夜间映亮水面（光照由方块/水面着色器计算）。
-  for (const x of POOL_LAMPS.xs) B.box(x, POOL_LAMPS.y - 0.11, POOL.z0 + 0.015, 0.36, 0.22, 0.03, L.light(0xdffcff));
+  for (const x of POOL_LAMPS.xs) {
+    B.box(x, POOL_LAMPS.y - 0.13, POOL.z0 - 0.015, 0.44, 0.26, 0.04, L.steel);
+    B.box(x, POOL_LAMPS.y - 0.11, POOL.z0 + 0.015, 0.36, 0.22, 0.03, L.light(0xdffcff));
+  }
   // 南缘（朝海）一道与水面齐平的檐口，做出无边水池的观感。
   B.box((POOL.x0 + POOL.x1) / 2, POOL.bed, POOL.z1 + 0.06, POOL.x1 - POOL.x0, POOL.water - POOL.bed, 0.12,
     L.paint(0x68b8c3), { shadow: false, tag: 'pool-infinity-edge' });
@@ -1121,5 +1159,6 @@ export function furnish({ layer }) {
     light.position.set(x, 3, z); light.userData = { base: power, day: 0.15, priority: 1 }; lights.push(light);
   }
 
+  fixtureMesh([...lampMetalParts, ...lampShadeParts], lampShadeGeometry, lampShadeMaterial, 'realistic-warm-lamp-fixtures');
   return { batches, obstacles, lights, lighting, hotspots, planes, animated, surfaces };
 }

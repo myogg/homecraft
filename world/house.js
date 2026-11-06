@@ -180,11 +180,12 @@ export function buildStairs(layer) {
   const { x0: sx0, x1: sx1, z0: sz0, z1: sz1 } = STAIRS;
   const steps = 16, run = (sz1 - sz0) / steps;
   const stairX = (sx0 + sx1) / 2, stairWidth = (sx1 - sx0) - 0.3;
-  const steel = { tex: 'steel' }, floor = { tex: 'greige_floor' }, light = { tex: 'paint', tint: 0xffdba6, emissive: 0.4 };
+  const steel = { tex: 'steel' }, channel = { tex: 'black_metal' }, floor = { tex: 'greige_floor' }, light = { tex: 'paint', tint: 0xffe2b5, emissive: 0.45 };
   for (let i = 0; i < steps; i++) {
     const z = sz1 - (i + 0.5) * run, y = (i + 1) * LOFT.y / steps;
     B.box(stairX, 0, z, stairWidth - 0.05, y - 0.06, run, steel);
     B.box(stairX, y - 0.06, z, stairWidth, 0.06, run, floor);
+    B.box(stairX, y - 0.14, z + run / 2 + 0.012, stairWidth - 0.34, 0.055, 0.045, channel);
     B.box(stairX, y - 0.12, z + run / 2 + 0.012, stairWidth - 0.4, 0.035, 0.025, light);
   }
   // 两侧扶手。
@@ -241,7 +242,10 @@ export function buildRoofAccess(layer, materials) {
   shell.box(cx, H + 0.12, cz, W - 0.3, 0.04, D - 0.3, glass, { shadow: false });
   // 四角的内侧灯带：夜里井道自己发光，像一根灯柱。
   for (const x of [L.x0 + 0.1, L.x1 - 0.1]) for (const z of [L.z0 + 0.1, L.z1 - 0.1])
-    shell.box(x, 0.35, z, 0.05, H - 1.1, 0.05, warm);
+  {
+    shell.box(x, 0.31, z, 0.065, H - 1.02, 0.065, dark);
+    shell.box(x, 0.35, z, 0.032, H - 1.1, 0.032, warm);
+  }
   for (const m of shell.build(materials)) group.add(m);
 
   // ---------- 轿厢 ----------
@@ -254,7 +258,8 @@ export function buildRoofAccess(layer, materials) {
     C.box(cx + dx, 0, cz + dz, w, ch, d, glass, { shadow: false });
   for (const [dx, dz] of [[-side, -side], [side, -side], [-side, side], [side, side]])
     C.box(cx + dx, 0, cz + dz, 0.05, ch, 0.05, steel);                           // 立柱
-  C.box(cx, ch - 0.05, cz, cw - 0.5, 0.04, cw - 0.5, warm);                     // 顶灯
+  C.box(cx, ch - 0.07, cz, cw - 0.38, 0.08, cw - 0.38, dark);                    // 顶灯嵌槽
+  C.box(cx, ch - 0.05, cz, cw - 0.5, 0.04, cw - 0.5, warm);                     // 柔光面板
   for (const z of [cz - cw / 2 + 0.12, cz + cw / 2 - 0.12]) C.box(cx, 0.92, z, cw - 0.34, 0.045, 0.045, steel);
   for (const m of C.build(materials)) cab.add(m);
   group.add(cab);
@@ -400,7 +405,10 @@ export function buildLoftLift(layer, materials) {
   for (const x of [L.x0, L.x1]) shell.box(x, H - 0.06, cz, 0.14, 0.12, D + 0.22, steel);
   // 四角内侧灯带：夜里井道自己发光。
   for (const x of [L.x0 + 0.1, L.x1 - 0.1]) for (const z of [L.z0 + 0.1, L.z1 - 0.1])
-    shell.box(x, 0.35, z, 0.05, H - 1.1, 0.05, warm);
+  {
+    shell.box(x, 0.31, z, 0.065, H - 1.02, 0.065, dark);
+    shell.box(x, 0.35, z, 0.032, H - 1.1, 0.032, warm);
+  }
   for (const m of shell.build(materials)) group.add(m);
 
   // ---------- 轿厢（几何用相对坐标，cab.position.y 由 update 设为 cabY）----------
@@ -413,7 +421,8 @@ export function buildLoftLift(layer, materials) {
   for (const dx of [-side, side]) C.box(cx + dx, 0, cz, 0.05, ch, cw - 0.1, glass, { shadow: false });
   for (const [dx, dz] of [[-side, -side], [side, -side], [-side, side], [side, side]])
     C.box(cx + dx, 0, cz + dz, 0.05, ch, 0.05, steel);                           // 立柱
-  C.box(cx, ch - 0.05, cz, cw - 0.5, 0.04, cw - 0.5, warm);                     // 顶灯
+  C.box(cx, ch - 0.07, cz, cw - 0.38, 0.08, cw - 0.38, dark);                    // 顶灯嵌槽
+  C.box(cx, ch - 0.05, cz, cw - 0.5, 0.04, cw - 0.5, warm);                     // 柔光面板
   for (const dx of [-cw / 2 + 0.12, cw / 2 - 0.12]) C.box(cx + dx, 0.92, cz, 0.045, 0.045, cw - 0.34, steel);
   for (const m of C.build(materials)) cab.add(m);
   group.add(cab);
