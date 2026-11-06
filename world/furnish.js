@@ -483,10 +483,21 @@ export function furnish({ layer }) {
   const tvTex = paint(TV_W, TV_H, (c, w, h) => drawTv(c, w, h, null));
   // 电视背后的整片深色墙板：西墙是玻璃的，不衬一层，电视就像浮在院子前面。
   B.box(-11.96, 0.5, tvZ, 0.07, 3.05, 4.4, L.paint(0x1c2024));
-  B.box(-11.06, 1.1, tvZ, 0.1, 2.3, 3.6, L.steel);          // 墙托
-  B.box(-11.0, 0.9, tvZ, 0.06, 2.7, 4, L.paint(0x0a0a0a));  // 屏体
-  plane(3.4, 1.95, tvTex, -10.9, 2.1, tvZ, Math.PI / 2, true);
+  // 薄型 VESA 壁挂架、轻量金属背板和电视背壳。
+  B.box(-11.81, 1.52, tvZ, 0.24, 0.68, 1.2, L.steel);
+  for (const dz of [-0.50, 0.50]) B.box(-11.35, 1.76, tvZ + dz, 0.72, 0.14, 0.10, L.steel);
+  B.box(-11.0, 1.02, tvZ, 0.12, 2.13, 3.72, L.paint(0x111519)); // 超薄电视机身
+  // 四边窄金属压条；动态歌单画面仍由原 canvas 屏幕承载。
+  B.box(-10.925, 1.02, tvZ, 0.06, 0.105, 3.58, L.paint(0x343a40));
+  B.box(-10.925, 3.045, tvZ, 0.06, 0.105, 3.58, L.paint(0x343a40));
+  for (const dz of [-1.75, 1.75]) B.box(-10.925, 1.125, tvZ + dz, 0.06, 1.95, 0.08, L.paint(0x343a40));
+  plane(3.4, 1.95, tvTex, -10.88, 2.1, tvZ, Math.PI / 2, true);
+  B.box(-10.925, 1.045, tvZ, 0.05, 0.024, 0.16, L.paint(0xa18a63)); // 屏幕下沿金属铭牌
   bake('tv', -10.7, 2.1, tvZ, 1.4, 6, [1, -0.4, 0]);
+  // 贴墙 soundbar：细长扬声器格栅和状态灯。
+  B.box(-10.80, 0.75, tvZ, 0.20, 0.13, 1.48, L.paint(0x1d2226));
+  B.box(-10.692, 0.79, tvZ, 0.02, 0.028, 1.20, L.paint(0x444c52));
+  B.box(-10.679, 0.79, tvZ + 0.60, 0.01, 0.018, 0.035, L.light(0xffc674));
   // 屏下矮柜：圆角胡桃木柜体、三块抽屉面板与细金属拉手；功放仍放在原位。
   const mediaCabinetParts = [
     [-11.5, 0.26, tvZ, 0.69, 0.43, 3.93, 0, 0x63452f],
@@ -500,6 +511,17 @@ export function furnish({ layer }) {
   roundedInstances(mediaCabinetParts, 'realistic-tv-console', woodMaterial);
   B.box(-11.32, 0.49, tvZ + 0.35, 0.28, 0.14, 0.9, L.paint(0x14171a));   // 功放
   B.box(-11.32, 0.63, tvZ + 0.35, 0.24, 0.015, 0.7, L.paint(0x3b4349));
+  // 无线麦克风接收机 + 一对金属网头话筒，均放在矮柜台面范围内。
+  B.box(-11.67, 0.50, tvZ + 1.22, 0.20, 0.14, 0.46, L.paint(0x151a1e));
+  B.box(-11.557, 0.55, tvZ + 1.22, 0.016, 0.05, 0.28, L.paint(0x5c707a));
+  B.box(-11.545, 0.565, tvZ + 1.22, 0.01, 0.018, 0.10, L.light(0x72d6a7));
+  for (const mz of [tvZ - 1.0, tvZ - 0.48]) {
+    B.box(-11.48, 0.50, mz, 0.36, 0.025, 0.075, L.paint(0x30373b)); // 麦克风托架
+    B.box(-11.48, 0.525, mz, 0.32, 0.04, 0.042, L.paint(0x262b30));
+    B.box(-11.30, 0.515, mz, 0.08, 0.07, 0.06, L.paint(0x9fa7ab)); // 网头
+    B.box(-11.36, 0.52, mz, 0.025, 0.045, 0.065, L.paint(0x9d845d)); // 金属环
+    B.box(-11.52, 0.555, mz, 0.04, 0.018, 0.028, L.light(0x72d7aa)); // 电源键
+  }
   foot(-11.5, tvZ, 0.7, 3.45);
   // 两座落地音箱：胡桃木箱体、织物障板、低音盆/高音单元与倒相孔。
   const speakerZs = [-2.45, 2.45].map(dz => tvZ + dz);
@@ -539,12 +561,23 @@ export function furnish({ layer }) {
   // 点歌机：钢立柱 + 一块触屏，背靠南墙、面朝屋里，站在房间中间就能点。
   const kx = -9.0, kz = 5.32;
   const kioskTex = paint(KIOSK_W, KIOSK_H, (c, w, h) => drawKiosk(c, w, h, null));
-  B.box(kx, 0, kz, 0.44, 0.05, 0.32, L.steel);              // 底座
-  B.box(kx, 0.05, kz, 0.08, 1.04, 0.08, L.steel);           // 立柱
-  B.box(kx, 1.09, kz, 0.5, 0.05, 0.16, L.steel);            // 屏托
-  B.box(kx, 0.96, kz - 0.02, 0.66, 0.94, 0.09, L.paint(0x14171a)); // 屏体
-  B.box(kx, 1.0, kz - 0.06, 0.58, 0.86, 0.02, L.paint(0x0b0f14));
-  plane(0.56, 0.78, kioskTex, kx, 1.43, kz - 0.075, Math.PI, true);
+  B.box(kx, 0, kz, 0.52, 0.06, 0.38, L.paint(0x272d32));     // 加重底座
+  B.box(kx, 0.06, kz + 0.015, 0.32, 0.04, 0.26, L.steel);   // 底座连接件
+  B.box(kx, 0.10, kz + 0.035, 0.12, 0.80, 0.12, L.paint(0x424b51)); // 支撑立柱
+  B.box(kx, 0.90, kz - 0.015, 0.68, 0.98, 0.16, L.paint(0x13181d)); // 触屏主机壳
+  B.box(kx, 1.82, kz - 0.105, 0.68, 0.06, 0.025, L.paint(0x3c454b));
+  B.box(kx, 0.96, kz - 0.105, 0.68, 0.08, 0.025, L.paint(0x3c454b));
+  for (const dx of [-0.31, 0.31]) B.box(kx + dx, 1.04, kz - 0.105, 0.06, 0.78, 0.025, L.paint(0x3c454b));
+  // 触屏下方实体控制区、实体按键、顶部摄像头与侧边读卡器。
+  B.box(kx, 0.96, kz - 0.122, 0.50, 0.08, 0.02, L.paint(0x242b31));
+  B.box(kx - 0.15, 0.982, kz - 0.139, 0.045, 0.024, 0.014, L.light(0xffbd70));
+  B.box(kx - 0.05, 0.982, kz - 0.139, 0.05, 0.024, 0.014, L.paint(0x79858b));
+  B.box(kx + 0.08, 0.982, kz - 0.139, 0.05, 0.024, 0.014, L.paint(0x79858b));
+  B.box(kx, 1.84, kz - 0.13, 0.065, 0.025, 0.012, L.paint(0x65717a));
+  B.box(kx + 0.30, 0.70, kz - 0.015, 0.06, 0.20, 0.16, L.paint(0x252b31));
+  B.box(kx + 0.302, 0.785, kz - 0.102, 0.015, 0.045, 0.06, L.paint(0x687982));
+  B.box(kx + 0.31, 0.79, kz - 0.12, 0.012, 0.018, 0.025, L.light(0x73d4a8));
+  plane(0.56, 0.78, kioskTex, kx, 1.43, kz - 0.13, Math.PI, true);
   foot(kx, kz, 0.72, 0.5);
   hot('jukebox', kx, 0.75, kz - 0.2, 1.1, 1.35, 1.0);
   // 南墙的木格栅（吸音板）：深色底板 + 一条条浅木条，缝里是暗的，读得出是一排木条。
