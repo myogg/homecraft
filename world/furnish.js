@@ -813,11 +813,14 @@ export function furnish({ layer }) {
   roundedInstances(loungeSofaWoodParts, 'realistic-lounge-sofa-frame', woodMaterial);
   roundedInstances(loungeSofaFabricParts, 'realistic-lounge-sofa-upholstery');
   foot(-10.5, 9.3, 1.86, 1.05);
-  // 矮几：整块原木台面 + 木腿，下层搁杂志。不用大理石——深绿纹在这间里像台球桌。
-  B.box(-10.5, 0.4, 8.15, 0.96, 0.05, 0.64, L.wood);
-  B.box(-10.5, 0.13, 8.15, 0.84, 0.035, 0.52, L.wood);
+  // 矮几：圆角胡桃木台面、收边木腿和下层置物板；书本、托盘与杯子保留。
+  const loungeCoffeeTableParts = [
+    [-10.5, 0.42, 8.15, 1.14, 0.09, 0.76, 0, 0x916e4b],
+    [-10.5, 0.15, 8.15, 1.00, 0.05, 0.62, 0, 0x76553a],
+  ];
   for (const dx of [-0.42, 0.42]) for (const dz of [-0.24, 0.24])
-    B.box(-10.5 + dx, 0.02, 8.15 + dz, 0.05, 0.38, 0.05, L.paint(0x5b4a37));
+    loungeCoffeeTableParts.push([-10.5 + dx, 0.20, 8.15 + dz, 0.07, 0.45, 0.07, 0, 0x60432e]);
+  roundedInstances(loungeCoffeeTableParts, 'realistic-lounge-coffee-table', woodMaterial);
   B.box(-10.7, 0.165, 8.12, 0.22, 0.04, 0.3, L.paint(0xb8a488));         // 下层杂志
   B.box(-10.7, 0.205, 8.14, 0.2, 0.03, 0.28, L.paint(0x8c5f4a));
   B.box(-10.62, 0.45, 8.1, 0.24, 0.04, 0.32, L.paint(0x2f4a52));         // 台面上的书
@@ -858,9 +861,21 @@ export function furnish({ layer }) {
   picture(8.05, artA); picture(8.85, artB);
 
   // ===== 一层：衣帽间（卫生间东侧，x[-9,-6] z[7,10]，门朝北）=====
-  B.box(-8.62, 0, 8.5, 0.55, 2.6, 2.6, L.panel);            // 西墙衣柜
+  // L 形衣柜：胡桃木柜体、双开门板与细长金属拉手。
+  const cloakroomWardrobeParts = [
+    [-8.62, 1.3, 8.5, 0.66, 3.10, 3.10, 0, 0x765638],
+    [-7.4, 1.3, 9.6, 2.62, 3.10, 0.66, 0, 0x765638],
+    [-8.30, 1.3, 7.85, 1.42, 2.80, 0.09, 0, 0xa07d59, Math.PI / 2],
+    [-8.30, 1.3, 9.15, 1.42, 2.80, 0.09, 0, 0xa07d59, Math.PI / 2],
+    [-7.94, 1.3, 9.28, 1.24, 2.80, 0.09, 0, 0xa07d59],
+    [-6.86, 1.3, 9.28, 1.24, 2.80, 0.09, 0, 0xa07d59],
+    [-8.62, 2.58, 8.5, 0.68, 0.13, 3.12, 0, 0x60432e],
+    [-7.4, 2.58, 9.6, 2.64, 0.13, 0.68, 0, 0x60432e],
+  ];
+  roundedInstances(cloakroomWardrobeParts, 'realistic-cloakroom-wardrobes', woodMaterial);
+  for (const z of [8.43, 8.57]) B.box(-8.245, 1.12, z, 0.035, 0.42, 0.035, L.steel);
+  for (const x of [-7.43, -7.37]) B.box(x, 1.12, 9.22, 0.035, 0.42, 0.035, L.steel);
   foot(-8.62, 8.5, 0.65, 2.7);
-  B.box(-7.4, 0, 9.6, 2.2, 2.6, 0.55, L.panel);             // 南墙衣柜
   foot(-7.4, 9.6, 2.3, 0.65);
   B.box(-6.32, 1.2, 8.2, 0.06, 1.7, 1.3, L.paint(0xbfe0e8)); // 镜
   B.box(-7.4, 0, 7.9, 0.7, 0.5, 0.7, L.paint(0x2a2f33)); foot(-7.4, 7.9, 0.8, 0.8); // 坐凳
