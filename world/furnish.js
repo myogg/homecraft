@@ -31,6 +31,59 @@ export function furnish({ layer }) {
     mesh.receiveShadow = !glow; planes.push(mesh); return mesh;
   };
   const paint = (w, h, fn) => canvasTexture(w, h, fn);
+  // Smooth, fabric-covered geometry is reserved for the sofa prototype; the
+  // rest of the world keeps its lightweight, batched block furniture.
+  const roundedSofaGeometry = (() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.30, -0.42);
+    shape.lineTo(0.30, -0.42); shape.quadraticCurveTo(0.42, -0.42, 0.42, -0.30);
+    shape.lineTo(0.42, 0.30); shape.quadraticCurveTo(0.42, 0.42, 0.30, 0.42);
+    shape.lineTo(-0.30, 0.42); shape.quadraticCurveTo(-0.42, 0.42, -0.42, 0.30);
+    shape.lineTo(-0.42, -0.30); shape.quadraticCurveTo(-0.42, -0.42, -0.30, -0.42);
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.84, steps: 1, bevelEnabled: true, bevelSegments: 4,
+      bevelSize: 0.08, bevelThickness: 0.08, curveSegments: 8,
+    });
+    geometry.translate(0, 0, -0.42);
+    geometry.rotateX(Math.PI / 2);
+    geometry.computeVertexNormals();
+    return geometry;
+  })();
+  const roundedInstances = (items, name) => {
+    const mesh = new THREE.InstancedMesh(roundedSofaGeometry, sofaMaterial, items.length);
+    const part = new THREE.Object3D();
+    mesh.name = name;
+    for (let i = 0; i < items.length; i++) {
+      const [x, y, z, w, h, d, tilt = 0, tint = 0xffffff] = items[i];
+      part.position.set(x, y, z);
+      part.rotation.set(0, 0, tilt);
+      part.scale.set(w, h, d);
+      part.updateMatrix();
+      mesh.setMatrixAt(i, part.matrix);
+      mesh.setColorAt(i, new THREE.Color(tint));
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.instanceColor.needsUpdate = true;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    planes.push(mesh);
+    return mesh;
+  };
+  const weaveCanvas = document.createElement('canvas');
+  weaveCanvas.width = weaveCanvas.height = 128;
+  const weave = weaveCanvas.getContext('2d');
+  weave.fillStyle = '#f8f8f6'; weave.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 128; i += 3) {
+    weave.fillStyle = i % 2 ? 'rgba(72,82,73,0.06)' : 'rgba(255,255,255,0.10)';
+    weave.fillRect(i, 0, 1, 128);
+    weave.fillRect(0, i, 128, 1);
+  }
+  const weaveTexture = new THREE.CanvasTexture(weaveCanvas);
+  weaveTexture.colorSpace = THREE.SRGBColorSpace;
+  weaveTexture.wrapS = weaveTexture.wrapT = THREE.RepeatWrapping;
+  weaveTexture.repeat.set(2, 2);
+  weaveTexture.anisotropy = 4;
+  const sofaMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: weaveTexture, roughness: 0.9 });
   // 吊灯：杆从 y+0.62 直上屋顶（HOUSE.height），灯体挂在 y 处。
   const pendant = (x, z, y) => {
     B.box(x, y + 0.62, z, 0.04, HOUSE.height - y - 0.62, 0.04, L.steel);
@@ -330,9 +383,21 @@ export function furnish({ layer }) {
   // ===== 一层：客厅（门厅中庭，沙发东移避开门轴与西侧楼梯）=====
   B.box(-9.25, 0, 3, 3.5, 0.025, 5.6, L.linen);            // 地毯（收到楼梯西侧）
   const sofaX = -1.0, sofaZ = 3;
-  B.box(sofaX, 0.08, sofaZ, 1, 0.48, 4, L.paint(0x1c1e20));
-  B.box(sofaX + 0.45, 0.48, sofaZ, 0.2, 0.62, 4, L.paint(0x1c1e20));
-  for (const z of [sofaZ - 1.7, sofaZ + 1.7]) B.box(sofaX, 0.08, z, 1, 0.65, 0.2, L.paint(0x1c1e20));
+  // Three-seat sofa prototype: walnut plinth, rounded arms and separate cushions.
+  const sofaWoodParts = [[sofaX, 0.17, sofaZ, 0.94, 0.18, 3.52, 0, 0x65452f]];
+  for (const x of [sofaX - 0.36, sofaX + 0.36]) for (const z of [sofaZ - 1.52, sofaZ + 1.52])
+    sofaWoodParts.push([x, 0.08, z, 0.09, 0.16, 0.09, 0, 0x65452f]);
+  const sofaUpholstery = [
+    [sofaX, 0.46, sofaZ - 1.57, 0.98, 0.62, 0.34, 0, 0x667366],
+    [sofaX, 0.46, sofaZ + 1.57, 0.98, 0.62, 0.34, 0, 0x667366],
+    ...[-1.08, 0, 1.08].map(dz => [sofaX - 0.12, 0.39, sofaZ + dz, 0.86, 0.27, 1.02, 0, 0x667366]),
+    ...[-1.08, 0, 1.08].map(dz => [sofaX + 0.42, 0.83, sofaZ + dz, 0.30, 0.68, 1.03, -0.07, 0x667366]),
+  ];
+  const sofaPillows = [
+    [sofaX + 0.17, 0.68, sofaZ - 1.17, 0.22, 0.38, 0.48, -0.16, 0xd5c8b1],
+    [sofaX + 0.17, 0.68, sofaZ + 1.17, 0.22, 0.38, 0.48, 0.13, 0xd5c8b1],
+  ];
+  roundedInstances([...sofaWoodParts, ...sofaUpholstery, ...sofaPillows], 'realistic-sofa');
   foot(sofaX, sofaZ, 1.2, 4.2); hot('about', sofaX, 0, sofaZ, 1.4, 1.2, 4.2);
   B.box(sofaX - 0.6, 0, sofaZ, 1.4, 0.45, 2.2, L.marble); foot(sofaX - 0.6, sofaZ, 1.5, 2.3); // 茶几
   // ===== 一层：电视角（楼梯西侧、卫生间北侧）→ 点歌台 =====
