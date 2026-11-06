@@ -54,9 +54,9 @@ export function furnish({ layer }) {
     const part = new THREE.Object3D();
     mesh.name = name;
     for (let i = 0; i < items.length; i++) {
-      const [x, y, z, w, h, d, tilt = 0, tint = 0xffffff] = items[i];
+      const [x, y, z, w, h, d, tilt = 0, tint = 0xffffff, yaw = 0] = items[i];
       part.position.set(x, y, z);
-      part.rotation.set(0, 0, tilt);
+      part.rotation.set(0, yaw, tilt);
       part.scale.set(w, h, d);
       part.updateMatrix();
       mesh.setMatrixAt(i, part.matrix);
@@ -751,10 +751,25 @@ export function furnish({ layer }) {
   B.box(7, 2.637, 7.2, 1.48, 0.025, 0.15, L.light(0xffe4ba)); bake('island-pendant', 7, 2.62, 7.2, 1.45, 5, [0, -1, 0]);
 
   // ===== 一层：餐厅（厨房北侧空地，x[3,6] z[4,7]）=====
-  const diningChair = (x, z, ry) => B.at(x, 0, z, ry, () => {
-    for (const dx of [-0.22, 0.22]) for (const dz of [-0.22, 0.22]) B.box(dx, 0, dz, 0.05, 0.45, 0.05, L.steel);
-    B.box(0, 0.45, 0, 0.5, 0.06, 0.5, L.wood); B.box(0, 0.86, 0.22, 0.5, 0.5, 0.06, L.wood);
-  });
+  const diningChairFrameParts = [], diningChairCushionParts = [];
+  const diningChair = (x, z, ry) => {
+    const c = Math.cos(ry), s = Math.sin(ry);
+    const add = (target, dx, y, dz, w, h, d, tint) => {
+      target.push([x + dx * c + dz * s, y, z - dx * s + dz * c, w, h, d, 0, tint, ry]);
+    };
+    for (const dx of [-0.21, 0.21]) {
+      add(diningChairFrameParts, dx, 0.225, -0.21, 0.065, 0.536, 0.065, 0x60432e);
+      add(diningChairFrameParts, dx, 0.825, 0.21, 0.065, 0.90, 0.065, 0x60432e);
+    }
+    add(diningChairFrameParts, 0, 0.47, 0, 0.60, 0.083, 0.60, 0x8a6947);
+    add(diningChairFrameParts, 0, 1.20, 0.21, 0.55, 0.09, 0.10, 0x76553a);
+    add(diningChairFrameParts, 0, 0.64, 0.21, 0.50, 0.07, 0.08, 0x76553a);
+    add(diningChairCushionParts, 0, 0.56, 0, 0.56, 0.15, 0.56, 0xd7d0c3);
+    add(diningChairCushionParts, 0, 0.87, 0.20, 0.50, 0.76, 0.15, 0xd7d0c3);
+  };
+  for (const [x, z, yaw] of [[4.6, 4.6, Math.PI], [4.6, 6.2, 0], [3.6, 5.4, -Math.PI / 2], [5.6, 5.4, Math.PI / 2]]) diningChair(x, z, yaw);
+  roundedInstances(diningChairFrameParts, 'realistic-dining-chair-frames', woodMaterial);
+  roundedInstances(diningChairCushionParts, 'realistic-dining-chair-upholstery');
   B.box(4.6, 0, 5.4, 1.9, 0.08, 1.0, L.marble); foot(4.6, 5.4, 2.0, 1.1);
   for (const dx of [-0.9, 0.9]) for (const dz of [-0.55, 0.55]) B.box(4.6 + dx, 0, 5.4 + dz, 0.06, 0.78, 0.06, L.steel);
   diningChair(4.6, 4.6, 0); diningChair(4.6, 6.2, Math.PI); diningChair(3.6, 5.4, -Math.PI / 2); diningChair(5.6, 5.4, Math.PI / 2);
