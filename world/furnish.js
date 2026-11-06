@@ -456,15 +456,41 @@ export function furnish({ layer }) {
   B.box(-11.32, 0.49, tvZ + 0.35, 0.28, 0.14, 0.9, L.paint(0x14171a));   // 功放
   B.box(-11.32, 0.63, tvZ + 0.35, 0.24, 0.015, 0.7, L.paint(0x3b4349));
   foot(-11.5, tvZ, 0.7, 3.45);
-  // 两座落地音箱，紧贴墙站在矮柜两侧。
-  for (const dz of [-2.45, 2.45]) {
-    const sz = tvZ + dz;
-    B.box(-11.32, 0, sz, 0.34, 1.1, 0.3, L.paint(0x14171a));
-    B.box(-11.14, 0.08, sz, 0.02, 0.32, 0.22, L.paint(0x333a40));
-    B.box(-11.13, 0.6, sz, 0.02, 0.3, 0.2, L.paint(0x22282d));
-    B.box(-11.13, 0.98, sz, 0.02, 0.1, 0.1, L.paint(0x9a7649));
-    foot(-11.32, sz, 0.42, 0.4);
+  // 两座落地音箱：胡桃木箱体、织物障板、低音盆/高音单元与倒相孔。
+  const speakerZs = [-2.45, 2.45].map(dz => tvZ + dz);
+  roundedInstances(speakerZs.map(sz => [-11.32, 0.55, sz, 0.405, 1.31, 0.36, 0, 0x9b744d]), 'realistic-speaker-cabinets', woodMaterial);
+  roundedInstances(speakerZs.map(sz => [-11.12, 0.55, sz, 0.055, 1.17, 0.32, 0, 0x3a4046]), 'realistic-speaker-baffles');
+  const speakerDriverParts = [];
+  for (const sz of speakerZs) {
+    speakerDriverParts.push(
+      [-11.085, 0.34, sz, 0.12, 0.035, 0x3c4147],   // woofer surround
+      [-11.06, 0.34, sz, 0.088, 0.018, 0x89939a],  // woofer cone
+      [-11.047, 0.34, sz, 0.030, 0.014, 0x454c51], // dust cap
+      [-11.085, 0.78, sz, 0.058, 0.03, 0x3c4147],  // tweeter surround
+      [-11.06, 0.78, sz, 0.036, 0.017, 0xbac2c7],  // tweeter dome
+      [-11.085, 0.17, sz, 0.030, 0.024, 0x121518], // bass port
+    );
+    foot(-11.32, sz, 0.42, 0.4); // retain each speaker's collision footprint
   }
+  const speakerDriverGeometry = new THREE.CylinderGeometry(1, 0.82, 1, 24);
+  const speakerDriverMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.62, metalness: 0.04 });
+  const speakerDrivers = new THREE.InstancedMesh(speakerDriverGeometry, speakerDriverMaterial, speakerDriverParts.length);
+  const speakerPart = new THREE.Object3D();
+  speakerDrivers.name = 'realistic-speaker-drivers';
+  for (let i = 0; i < speakerDriverParts.length; i++) {
+    const [x, y, z, radius, depth, tint] = speakerDriverParts[i];
+    speakerPart.position.set(x, y, z);
+    speakerPart.rotation.set(0, 0, Math.PI / 2);
+    speakerPart.scale.set(radius, depth, radius);
+    speakerPart.updateMatrix();
+    speakerDrivers.setMatrixAt(i, speakerPart.matrix);
+    speakerDrivers.setColorAt(i, new THREE.Color(tint));
+  }
+  speakerDrivers.instanceMatrix.needsUpdate = true;
+  speakerDrivers.instanceColor.needsUpdate = true;
+  speakerDrivers.castShadow = true;
+  speakerDrivers.receiveShadow = true;
+  planes.push(speakerDrivers);
   // 点歌机：钢立柱 + 一块触屏，背靠南墙、面朝屋里，站在房间中间就能点。
   const kx = -9.0, kz = 5.32;
   const kioskTex = paint(KIOSK_W, KIOSK_H, (c, w, h) => drawKiosk(c, w, h, null));
