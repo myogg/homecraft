@@ -119,18 +119,40 @@ export function furnish({ layer }) {
   // 障碍只圈床垫本体（3.4×4.15）——原来按「床 + 两个柜」的 5.2 m 宽整块圈，
   // 次卧那张正好把门口的落脚格子吃掉了，人走到门口就被挡回去。
   const bed = (x, y, z, stands = [-2.1, 2.1]) => {
-    B.box(x, y, z, 3.2, 0.3, 4, L.linen);                    // 床垫
-    B.box(x, y + 0.3, z - 1.4, 3.0, 0.5, 1.2, L.paint(0xf2efe9)); // 被褥
-    B.box(x, y + 0.8, z - 1.6, 2.6, 0.25, 0.8, L.paint(0xe7e2d8)); // 枕头
-    B.box(x, y, z - 1.9, 3.4, 1.4, 0.25, L.panel);           // 床背（床头一侧）
+    const side = x < 0 ? 'main' : 'guest';
+    const bedFrameParts = [
+      [x - 1.48, y + 0.13, z, 0.15, 0.24, 4.0, 0, 0x644831],
+      [x + 1.48, y + 0.13, z, 0.15, 0.24, 4.0, 0, 0x644831],
+      [x, y + 0.13, z - 1.86, 3.2, 0.24, 0.15, 0, 0x73543a],
+      [x, y + 0.13, z + 1.86, 3.2, 0.24, 0.15, 0, 0x73543a],
+      [x - 1.48, y + 0.12, z - 1.78, 0.13, 0.24, 0.13, 0, 0x533a28],
+      [x + 1.48, y + 0.12, z - 1.78, 0.13, 0.24, 0.13, 0, 0x533a28],
+      [x - 1.48, y + 0.12, z + 1.78, 0.13, 0.24, 0.13, 0, 0x533a28],
+      [x + 1.48, y + 0.12, z + 1.78, 0.13, 0.24, 0.13, 0, 0x533a28],
+      [x, y + 0.72, z - 1.95, 3.4, 1.4, 0.22, 0, 0x694a32],
+    ];
+    roundedInstances(bedFrameParts, `realistic-${side}-bed-frame`, woodMaterial);
+    roundedInstances([[x, y + 0.82, z - 1.82, 2.85, 0.92, 0.10, 0, 0xb5b4a6]], `realistic-${side}-headboard-upholstery`);
+    const bedLinenParts = [
+      [x, y + 0.32, z, 3.15, 0.36, 3.92, 0, 0xf2f0ea],
+      [x, y + 0.52, z + 0.40, 2.95, 0.24, 2.5, 0, 0xe1d9c9],
+      [x, y + 0.64, z + 1.42, 2.9, 0.16, 0.72, 0, 0xaab09f],
+      [x - 0.65, y + 0.61, z - 1.35, 1.2, 0.18, 0.66, -0.025, 0xf8f6f0],
+      [x + 0.65, y + 0.61, z - 1.35, 1.2, 0.18, 0.66, 0.025, 0xf8f6f0],
+    ];
+    roundedInstances(bedLinenParts, `realistic-${side}-bed-linen`);
     foot(x, z, 3.4, 4.15, 1);
     hot('bed', x, y + 0.1, z, 3.2, 0.9, 3.9);                // 点床就能躺下睡
+    const bedsideParts = [];
     for (const sx of stands) {
-      B.box(x + sx, y, z - 1.4, 0.8, 0.6, 0.8, L.panel);     // 床头柜
-      B.box(x + sx, y + 0.6, z - 1.4, 0.86, 0.05, 0.86, L.marble);
+      bedsideParts.push([x + sx, y + 0.30, z - 1.4, 0.8, 0.60, 0.8, 0, 0x705038]);
+      bedsideParts.push([x + sx, y + 0.625, z - 1.4, 0.86, 0.05, 0.86, 0, 0x5b402d]);
+      bedsideParts.push([x + sx, y + 0.32, z - 0.96, 0.66, 0.30, 0.055, 0, 0x927050]);
+      B.box(x + sx, y + 0.29, z - 0.92, 0.12, 0.035, 0.035, L.steel);
       B.box(x + sx, y + 0.65, z - 1.4, 0.2, 0.3, 0.2, L.light(0xffdfa8));
       foot(x + sx, z - 1.4, 0.95, 0.95, 1);
     }
+    roundedInstances(bedsideParts, `realistic-${side}-bedside-table`, woodMaterial);
     bake('bed-lamp', x, y + 1, z - 1.4, 1.2, 4, [0, -1, 0]);
   };
   // 人体工学椅：ry=0 时椅背在 +z（南），人面朝北（-z）看桌与显示器。
@@ -815,11 +837,11 @@ export function furnish({ layer }) {
   foot(-10.5, 9.3, 1.86, 1.05);
   // 矮几：圆角胡桃木台面、收边木腿和下层置物板；书本、托盘与杯子保留。
   const loungeCoffeeTableParts = [
-    [-10.5, 0.42, 8.15, 1.14, 0.09, 0.76, 0, 0x916e4b],
-    [-10.5, 0.15, 8.15, 1.00, 0.05, 0.62, 0, 0x76553a],
+    [-10.5, 0.425, 8.15, 0.96, 0.05, 0.64, 0, 0x916e4b],
+    [-10.5, 0.1475, 8.15, 0.84, 0.035, 0.52, 0, 0x76553a],
   ];
   for (const dx of [-0.42, 0.42]) for (const dz of [-0.24, 0.24])
-    loungeCoffeeTableParts.push([-10.5 + dx, 0.20, 8.15 + dz, 0.07, 0.45, 0.07, 0, 0x60432e]);
+    loungeCoffeeTableParts.push([-10.5 + dx, 0.21, 8.15 + dz, 0.05, 0.38, 0.05, 0, 0x60432e]);
   roundedInstances(loungeCoffeeTableParts, 'realistic-lounge-coffee-table', woodMaterial);
   B.box(-10.7, 0.165, 8.12, 0.22, 0.04, 0.3, L.paint(0xb8a488));         // 下层杂志
   B.box(-10.7, 0.205, 8.14, 0.2, 0.03, 0.28, L.paint(0x8c5f4a));
@@ -863,14 +885,14 @@ export function furnish({ layer }) {
   // ===== 一层：衣帽间（卫生间东侧，x[-9,-6] z[7,10]，门朝北）=====
   // L 形衣柜：胡桃木柜体、双开门板与细长金属拉手。
   const cloakroomWardrobeParts = [
-    [-8.62, 1.3, 8.5, 0.66, 3.10, 3.10, 0, 0x765638],
-    [-7.4, 1.3, 9.6, 2.62, 3.10, 0.66, 0, 0x765638],
-    [-8.30, 1.3, 7.85, 1.42, 2.80, 0.09, 0, 0xa07d59, Math.PI / 2],
-    [-8.30, 1.3, 9.15, 1.42, 2.80, 0.09, 0, 0xa07d59, Math.PI / 2],
-    [-7.94, 1.3, 9.28, 1.24, 2.80, 0.09, 0, 0xa07d59],
-    [-6.86, 1.3, 9.28, 1.24, 2.80, 0.09, 0, 0xa07d59],
-    [-8.62, 2.58, 8.5, 0.68, 0.13, 3.12, 0, 0x60432e],
-    [-7.4, 2.58, 9.6, 2.64, 0.13, 0.68, 0, 0x60432e],
+    [-8.62, 1.3, 8.5, 0.55, 2.6, 2.6, 0, 0x765638],
+    [-7.4, 1.3, 9.6, 2.2, 2.6, 0.55, 0, 0x765638],
+    [-8.30, 1.3, 7.85, 1.2, 2.35, 0.055, 0, 0xa07d59, Math.PI / 2],
+    [-8.30, 1.3, 9.15, 1.2, 2.35, 0.055, 0, 0xa07d59, Math.PI / 2],
+    [-7.94, 1.3, 9.28, 1.04, 2.35, 0.055, 0, 0xa07d59],
+    [-6.86, 1.3, 9.28, 1.04, 2.35, 0.055, 0, 0xa07d59],
+    [-8.62, 2.56, 8.5, 0.57, 0.08, 2.62, 0, 0x60432e],
+    [-7.4, 2.56, 9.6, 2.22, 0.08, 0.57, 0, 0x60432e],
   ];
   roundedInstances(cloakroomWardrobeParts, 'realistic-cloakroom-wardrobes', woodMaterial);
   for (const z of [8.43, 8.57]) B.box(-8.245, 1.12, z, 0.035, 0.42, 0.035, L.steel);
@@ -878,7 +900,14 @@ export function furnish({ layer }) {
   foot(-8.62, 8.5, 0.65, 2.7);
   foot(-7.4, 9.6, 2.3, 0.65);
   B.box(-6.32, 1.2, 8.2, 0.06, 1.7, 1.3, L.paint(0xbfe0e8)); // 镜
-  B.box(-7.4, 0, 7.9, 0.7, 0.5, 0.7, L.paint(0x2a2f33)); foot(-7.4, 7.9, 0.8, 0.8); // 坐凳
+  const cloakroomStoolFrame = [
+    [-7.4, 0.29, 7.9, 0.56, 0.15, 0.56, 0, 0x705139],
+  ];
+  for (const dx of [-0.22, 0.22]) for (const dz of [-0.22, 0.22])
+    cloakroomStoolFrame.push([-7.4 + dx, 0.18, 7.9 + dz, 0.07, 0.34, 0.07, 0, 0x533b29]);
+  roundedInstances(cloakroomStoolFrame, 'realistic-cloakroom-stool-frame', woodMaterial);
+  roundedInstances([[-7.4, 0.43, 7.9, 0.70, 0.18, 0.70, 0, 0xb9bbaa]], 'realistic-cloakroom-stool-cushion');
+  foot(-7.4, 7.9, 0.8, 0.8);
   bake('cloak', -7.5, 2.5, 8.3, 1.4, 4.5, [0, -1, 0]);
 
   // ===== 楼梯两侧的碰撞挡（免得从侧面穿进踏步，楼梯现偏西侧 x[-7,-3]）=====
