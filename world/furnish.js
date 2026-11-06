@@ -49,8 +49,8 @@ export function furnish({ layer }) {
     geometry.computeVertexNormals();
     return geometry;
   })();
-  const roundedInstances = (items, name) => {
-    const mesh = new THREE.InstancedMesh(roundedSofaGeometry, sofaMaterial, items.length);
+  const roundedInstances = (items, name, material = sofaMaterial) => {
+    const mesh = new THREE.InstancedMesh(roundedSofaGeometry, material, items.length);
     const part = new THREE.Object3D();
     mesh.name = name;
     for (let i = 0; i < items.length; i++) {
@@ -84,6 +84,27 @@ export function furnish({ layer }) {
   weaveTexture.repeat.set(2, 2);
   weaveTexture.anisotropy = 4;
   const sofaMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: weaveTexture, roughness: 0.9 });
+  const grainCanvas = document.createElement('canvas');
+  grainCanvas.width = grainCanvas.height = 128;
+  const grain = grainCanvas.getContext('2d');
+  grain.fillStyle = '#fff'; grain.fillRect(0, 0, 128, 128);
+  for (let band = 0; band < 15; band++) {
+    const y = band * 9 + 3;
+    grain.strokeStyle = band % 3 === 0 ? 'rgba(74,46,24,0.15)' : 'rgba(96,67,39,0.07)';
+    grain.lineWidth = band % 3 === 0 ? 1.4 : 0.7;
+    grain.beginPath(); grain.moveTo(0, y);
+    for (let x = 0; x < 128; x += 32) {
+      const wave = Math.sin((x + band * 13) * 0.08) * 2;
+      grain.quadraticCurveTo(x + 16, y + wave, x + 32, y - wave * 0.4);
+    }
+    grain.stroke();
+  }
+  const woodTexture = new THREE.CanvasTexture(grainCanvas);
+  woodTexture.colorSpace = THREE.SRGBColorSpace;
+  woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
+  woodTexture.repeat.set(1, 2);
+  woodTexture.anisotropy = 4;
+  const woodMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: woodTexture, roughness: 0.72 });
   // 吊灯：杆从 y+0.62 直上屋顶（HOUSE.height），灯体挂在 y 处。
   const pendant = (x, z, y) => {
     B.box(x, y + 0.62, z, 0.04, HOUSE.height - y - 0.62, 0.04, L.steel);
@@ -399,7 +420,16 @@ export function furnish({ layer }) {
   ];
   roundedInstances([...sofaWoodParts, ...sofaUpholstery, ...sofaPillows], 'realistic-sofa');
   foot(sofaX, sofaZ, 1.2, 4.2); hot('about', sofaX, 0, sofaZ, 1.4, 1.2, 4.2);
-  B.box(sofaX - 0.6, 0, sofaZ, 1.4, 0.45, 2.2, L.marble); foot(sofaX - 0.6, sofaZ, 1.5, 2.3); // 茶几
+  const coffeeTableX = sofaX - 1.4; // 留出约 40 cm 的膝部通道
+  const coffeeTableParts = [
+    [coffeeTableX, 0.40, sofaZ, 1.20, 0.15, 2.02, 0, 0x745437], // rounded walnut top
+    ...[-0.40, 0.40].flatMap(dx => [-0.65, 0.65].map(dz =>
+      [coffeeTableX + dx, 0.17, sofaZ + dz, 0.14, 0.41, 0.14, 0, 0x60432e])),
+    ...[-0.34, 0.34].map(dx => [coffeeTableX + dx, 0.30, sofaZ, 0.10, 0.10, 1.79, 0, 0x60432e]),
+    ...[-0.60, 0.60].map(dz => [coffeeTableX, 0.30, sofaZ + dz, 0.95, 0.10, 0.10, 0, 0x60432e]),
+  ];
+  roundedInstances(coffeeTableParts, 'realistic-coffee-table', woodMaterial);
+  foot(coffeeTableX, sofaZ, 1.08, 1.8);
   // ===== 一层：电视角（楼梯西侧、卫生间北侧）→ 点歌台 =====
   // 这里是楼梯和卫生间夹出来的一块口袋空间：进门要绕到楼梯南端那个口子才进得来，
   // 原来只挂了台电视、铺了块地毯，走进去像个死角。现在整块做成点歌台——电视当
@@ -412,10 +442,17 @@ export function furnish({ layer }) {
   B.box(-11.0, 0.9, tvZ, 0.06, 2.7, 4, L.paint(0x0a0a0a));  // 屏体
   plane(3.4, 1.95, tvTex, -10.9, 2.1, tvZ, Math.PI / 2, true);
   bake('tv', -10.7, 2.1, tvZ, 1.4, 6, [1, -0.4, 0]);
-  // 屏下矮柜：功放、唱片、随手放的线，都在这一层。
-  B.box(-11.5, 0, tvZ, 0.58, 0.44, 3.3, L.wood);
-  B.box(-11.5, 0.44, tvZ, 0.62, 0.05, 3.4, L.marble);
-  for (const dz of [-0.9, 0.9]) B.box(-11.2, 0.08, tvZ + dz, 0.012, 0.28, 0.86, L.paint(0x453a2e));
+  // 屏下矮柜：圆角胡桃木柜体、三块抽屉面板与细金属拉手；功放仍放在原位。
+  const mediaCabinetParts = [
+    [-11.5, 0.26, tvZ, 0.69, 0.43, 3.93, 0, 0x63452f],
+    [-11.5, 0.04, tvZ, 0.57, 0.10, 3.68, 0, 0x493321],
+    [-11.5, 0.465, tvZ, 0.74, 0.07, 4.05, 0, 0x8a6947],
+    ...[-11.66, -11.34].flatMap(x => [-1.42, 1.42].map(dz =>
+      [x, 0.045, tvZ + dz, 0.13, 0.11, 0.13, 0, 0x493321])),
+    ...[-1.08, 0, 1.08].map(dz => [-11.19, 0.26, tvZ + dz, 0.055, 0.27, 0.99, 0, 0x76553a]),
+    ...[-1.08, 0, 1.08].map(dz => [-11.13, 0.26, tvZ + dz, 0.03, 0.035, 0.19, 0, 0xb99559]),
+  ];
+  roundedInstances(mediaCabinetParts, 'realistic-tv-console', woodMaterial);
   B.box(-11.32, 0.49, tvZ + 0.35, 0.28, 0.14, 0.9, L.paint(0x14171a));   // 功放
   B.box(-11.32, 0.63, tvZ + 0.35, 0.24, 0.015, 0.7, L.paint(0x3b4349));
   foot(-11.5, tvZ, 0.7, 3.45);
