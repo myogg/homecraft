@@ -507,10 +507,21 @@ export function furnish({ layer }) {
   for (let i = 0; i < 9; i++) B.box(-9.82 + i * 0.2, 0.04, 5.965, 0.15, 2.55, 0.035, L.panel);
   B.box(-9.0, 2.58, 5.96, 1.9, 0.05, 0.05, L.steel);
   B.box(-9.0, 0, 5.96, 1.9, 0.05, 0.05, L.steel);
-  // 靠楼梯墙的一条木长凳，面朝大屏。
-  B.box(-7.64, 0, 2.5, 0.72, 0.36, 2.4, L.panel);
-  B.box(-7.33, 0.36, 2.5, 0.11, 0.52, 2.4, L.panel);
-  for (const dz of [-0.6, 0.6]) B.box(-7.66, 0.36, 2.5 + dz, 0.66, 0.12, 0.62, L.linen);
+  // 靠楼梯墙的长凳：圆角胡桃木框架、三段坐垫和分块靠背软垫。
+  const benchX = -7.64, benchZ = 2.5;
+  const benchFrame = [
+    [benchX, 0.24, benchZ, 0.75, 0.20, 2.78, 0, 0x715136],
+    [benchX, 0.335, benchZ, 0.74, 0.11, 2.86, 0, 0x8a6947],
+    ...[-0.25, 0.25].flatMap(dx => [-1.10, 1.10].map(dz =>
+      [benchX + dx, 0.13, benchZ + dz, 0.16, 0.30, 0.16, 0, 0x60432e])),
+    [benchX + 0.31, 0.65, benchZ, 0.15, 0.62, 2.90, 0, 0x715136],
+  ];
+  roundedInstances(benchFrame, 'realistic-bench-frame', woodMaterial);
+  const benchCushions = [
+    ...[-0.74, 0, 0.74].map(dz => [benchX - 0.03, 0.43, benchZ + dz, 0.67, 0.16, 0.80, 0, 0x667366]),
+    ...[-0.74, 0, 0.74].map(dz => [benchX + 0.20, 0.67, benchZ + dz, 0.25, 0.52, 0.90, 0, 0x778477]),
+  ];
+  roundedInstances(benchCushions, 'realistic-bench-cushions');
   foot(-7.6, 2.5, 0.95, 2.5);
   pendant(-9.4, 2.9, 3.4);
   // 门楣上的一块灯牌，夜里也认得出这是哪。
