@@ -1,4 +1,4 @@
-// 家具与陈设：一层客厅/书房/厨房/卫生间/衣帽间，二层两卧室+卫生间，屋顶观景台。
+// 家具与陈设：一层客厅/书房/厨房/卫生间，二层两卧室+卫生间，屋顶观景台。
 // 全部静态合批；电视/电脑屏用 canvas 贴图 + 自发光平面（glow），未接渲染管线也能直接显示画面。
 import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
@@ -446,40 +446,13 @@ export function furnish({ layer }) {
     plane(1.7, 1.0, paint(420, 250, monitorPane('code', 'homecraft — world')), px, 1.95, pz, ry, true);
   };
 
-  // ===== 一层：客厅（门厅中庭，沙发东移避开门轴与西侧楼梯）=====
-  B.box(-9.25, 0, 3, 3.5, 0.025, 5.6, L.linen);            // 地毯（收到楼梯西侧）
-  const sofaX = -1.0, sofaZ = 3;
-  // Three-seat sofa prototype: walnut plinth, rounded arms and separate cushions.
-  const sofaWoodParts = [[sofaX, 0.17, sofaZ, 0.94, 0.18, 3.52, 0, 0x65452f]];
-  for (const x of [sofaX - 0.36, sofaX + 0.36]) for (const z of [sofaZ - 1.52, sofaZ + 1.52])
-    sofaWoodParts.push([x, 0.08, z, 0.09, 0.16, 0.09, 0, 0x65452f]);
-  const sofaUpholstery = [
-    [sofaX, 0.46, sofaZ - 1.57, 0.98, 0.62, 0.34, 0, 0x667366],
-    [sofaX, 0.46, sofaZ + 1.57, 0.98, 0.62, 0.34, 0, 0x667366],
-    ...[-1.08, 0, 1.08].map(dz => [sofaX - 0.12, 0.39, sofaZ + dz, 0.86, 0.27, 1.02, 0, 0x667366]),
-    ...[-1.08, 0, 1.08].map(dz => [sofaX + 0.42, 0.83, sofaZ + dz, 0.30, 0.68, 1.03, -0.07, 0x667366]),
-  ];
-  const sofaPillows = [
-    [sofaX + 0.17, 0.68, sofaZ - 1.17, 0.22, 0.38, 0.48, -0.16, 0xd5c8b1],
-    [sofaX + 0.17, 0.68, sofaZ + 1.17, 0.22, 0.38, 0.48, 0.13, 0xd5c8b1],
-  ];
-  roundedInstances([...sofaWoodParts, ...sofaUpholstery, ...sofaPillows], 'realistic-sofa');
-  foot(sofaX, sofaZ, 1.2, 4.2); hot('about', sofaX, 0, sofaZ, 1.4, 1.2, 4.2);
-  const coffeeTableX = sofaX - 1.4; // 留出约 40 cm 的膝部通道
-  const coffeeTableParts = [
-    [coffeeTableX, 0.40, sofaZ, 1.20, 0.15, 2.02, 0, 0x745437], // rounded walnut top
-    ...[-0.40, 0.40].flatMap(dx => [-0.65, 0.65].map(dz =>
-      [coffeeTableX + dx, 0.17, sofaZ + dz, 0.14, 0.41, 0.14, 0, 0x60432e])),
-    ...[-0.34, 0.34].map(dx => [coffeeTableX + dx, 0.30, sofaZ, 0.10, 0.10, 1.79, 0, 0x60432e]),
-    ...[-0.60, 0.60].map(dz => [coffeeTableX, 0.30, sofaZ + dz, 0.95, 0.10, 0.10, 0, 0x60432e]),
-  ];
-  roundedInstances(coffeeTableParts, 'realistic-coffee-table', woodMaterial);
-  foot(coffeeTableX, sofaZ, 1.08, 1.8);
+  // ===== 一层：门厅中庭（楼梯东侧保持开放）=====
+  B.box(-9.25, 0, 3, 3.5, 0.025, 5.6, L.linen);            // 点歌区地毯（楼梯西侧）
   // ===== 一层：电视角（楼梯西侧、卫生间北侧）→ 点歌台 =====
   // 这里是楼梯和卫生间夹出来的一块口袋空间：进门要绕到楼梯南端那个口子才进得来，
   // 原来只挂了台电视、铺了块地毯，走进去像个死角。现在整块做成点歌台——电视当
   // 大屏列歌单，墙下矮柜摆两座音箱，中间立一台点歌机，靠楼梯墙一条长凳。
-  const tvZ = sofaZ;
+  const tvZ = 3;
   const tvTex = paint(TV_W, TV_H, (c, w, h) => drawTv(c, w, h, null));
   // 电视背后的整片深色墙板：西墙是玻璃的，不衬一层，电视就像浮在院子前面。
   B.box(-11.96, 0.5, tvZ, 0.07, 3.05, 4.4, L.paint(0x1c2024));
@@ -621,7 +594,7 @@ export function furnish({ layer }) {
       tvTex.needsUpdate = true; kioskTex.needsUpdate = true;
     },
   };
-  // 落地灯与吊灯（挪到沙发东侧，避开西侧楼梯）。
+  // 门厅东侧的落地灯与吊灯，留出楼梯通行空间。
   B.box(1.5, 0, 5.4, 0.5, 0.055, 0.5, L.steel); B.box(1.5, 0.055, 5.4, 0.065, 1.72, 0.065, L.steel);
   fixturePart(lampMetalParts, 1.5, 1.78, 5.4, 0.085, 0.05, 0.085, 0x98764d);
   fixturePart(lampShadeParts, 1.5, 1.90, 5.4, 0.31, 0.28, 0.31, 0xf0e7d8);
@@ -920,56 +893,6 @@ export function furnish({ layer }) {
   foot(-9.42, 7.28, 0.36, 0.36);
   bake('lounge', -9.38, 1.55, 7.3, 1.15, 4.8, [0, -1, 0]);
   bake('lounge', -10.4, 2.85, 8.6, 0.85, 4.4, [0, -1, 0]);
-  // 东墙两幅小画（沙发上方），抽象色块，衬亚麻。
-  const artA = paint(300, 400, (c, w, h) => {
-    c.fillStyle = '#efe7d9'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#b98a5e'; c.fillRect(0, h * 0.62, w, h * 0.38);
-    c.fillStyle = '#d9c3a3'; c.fillRect(0, h * 0.53, w, h * 0.09);
-    c.fillStyle = '#8a9a8c'; c.beginPath(); c.arc(w * 0.66, h * 0.29, w * 0.15, 0, 7); c.fill();
-    c.strokeStyle = '#2f3330'; c.lineWidth = 3;
-    c.beginPath(); c.moveTo(0, h * 0.79); c.lineTo(w, h * 0.75); c.stroke();
-  });
-  const artB = paint(300, 400, (c, w, h) => {
-    c.fillStyle = '#e8e9e4'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#6f8078'; c.fillRect(0, 0, w, h * 0.44);
-    c.fillStyle = '#c6a882'; c.fillRect(w * 0.16, h * 0.44, w * 0.68, h * 0.22);
-    c.fillStyle = '#3a3f3b'; c.fillRect(w * 0.1, h * 0.85, w * 0.8, 4);
-  });
-  const picture = (az, tex) => {
-    B.box(-9.03, 1.38, az, 0.05, 0.94, 0.68, L.paint(0x2b2620));
-    B.box(-9.062, 1.42, az, 0.035, 0.86, 0.6, L.paint(0xf3efe6));
-    plane(0.5, 0.72, tex, -9.085, 1.85, az, -Math.PI / 2, false);
-  };
-  picture(8.05, artA); picture(8.85, artB);
-
-  // ===== 一层：衣帽间（卫生间东侧，x[-9,-6] z[7,10]，门朝北）=====
-  // L 形衣柜：胡桃木柜体、双开门板与细长金属拉手。
-  const cloakroomWardrobeParts = [
-    [-8.62, 1.3, 8.5, 0.55, 2.6, 2.6, 0, 0x765638],
-    [-7.4, 1.3, 9.6, 2.2, 2.6, 0.55, 0, 0x765638],
-    [-8.30, 1.3, 7.85, 1.2, 2.35, 0.055, 0, 0xa07d59, Math.PI / 2],
-    [-8.30, 1.3, 9.15, 1.2, 2.35, 0.055, 0, 0xa07d59, Math.PI / 2],
-    [-7.94, 1.3, 9.28, 1.04, 2.35, 0.055, 0, 0xa07d59],
-    [-6.86, 1.3, 9.28, 1.04, 2.35, 0.055, 0, 0xa07d59],
-    [-8.62, 2.56, 8.5, 0.57, 0.08, 2.62, 0, 0x60432e],
-    [-7.4, 2.56, 9.6, 2.22, 0.08, 0.57, 0, 0x60432e],
-  ];
-  roundedInstances(cloakroomWardrobeParts, 'realistic-cloakroom-wardrobes', woodMaterial);
-  for (const z of [8.43, 8.57]) B.box(-8.245, 1.12, z, 0.035, 0.42, 0.035, L.steel);
-  for (const x of [-7.43, -7.37]) B.box(x, 1.12, 9.22, 0.035, 0.42, 0.035, L.steel);
-  foot(-8.62, 8.5, 0.65, 2.7);
-  foot(-7.4, 9.6, 2.3, 0.65);
-  B.box(-6.32, 1.2, 8.2, 0.06, 1.7, 1.3, L.paint(0xbfe0e8)); // 镜
-  const cloakroomStoolFrame = [
-    [-7.4, 0.29, 7.9, 0.56, 0.15, 0.56, 0, 0x705139],
-  ];
-  for (const dx of [-0.22, 0.22]) for (const dz of [-0.22, 0.22])
-    cloakroomStoolFrame.push([-7.4 + dx, 0.18, 7.9 + dz, 0.07, 0.34, 0.07, 0, 0x533b29]);
-  roundedInstances(cloakroomStoolFrame, 'realistic-cloakroom-stool-frame', woodMaterial);
-  roundedInstances([[-7.4, 0.43, 7.9, 0.70, 0.18, 0.70, 0, 0xb9bbaa]], 'realistic-cloakroom-stool-cushion');
-  foot(-7.4, 7.9, 0.8, 0.8);
-  bake('cloak', -7.5, 2.5, 8.3, 1.4, 4.5, [0, -1, 0]);
-
   // ===== 楼梯两侧的碰撞挡（免得从侧面穿进踏步，楼梯现偏西侧 x[-7,-3]）=====
   foot(-7.05, 2, 0.35, 8, 0); foot(-3.05, 2, 0.35, 8, 0);
 

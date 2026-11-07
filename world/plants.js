@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BoxBatch } from '@engine/world/blocks.js';
 import { LOFT } from './layout.js';
 
-// 摆放点：客厅 / 书房 / 厨房 / 二层主卧 / 衣帽间外 / 泳池西侧草坪。
+// 摆放点：客厅 / 书房 / 厨房 / 二层主卧 / 休息区入口 / 泳池西侧草坪。
 // 避开楼梯井(x[-7,-3])、各家具与门洞；loft 上的植物用 y/level 放到二层。
 export const FLOOR_PLANTS = [
   { id: 'living', kind: 'money', x: -9.5, z: -3, height: 2.7, width: 1.5, yaw: 0.4 },
@@ -14,7 +14,7 @@ export const FLOOR_PLANTS = [
   // 主卧东北角（床东侧）、次卧东南角（床尾与东玻璃墙之间）。
   { id: 'bedroom', kind: 'bird', x: 11.3, z: -5.2, y: LOFT.y, level: 1, height: 2.7, width: 1.2, yaw: -0.4 },
   { id: 'bedroom2', kind: 'money', x: -4, z: -8.5, y: LOFT.y, level: 1, height: 2.7, width: 1.5, yaw: 0.5 },
-  { id: 'cloak', kind: 'money', x: -11.5, z: 5.3, height: 2.6, width: 1.45, yaw: -0.5 },
+  { id: 'lounge-entry', kind: 'money', x: -11.5, z: 5.3, height: 2.6, width: 1.45, yaw: -0.5 },
   { id: 'terrace', kind: 'bird', x: -12.5, z: 13.2, height: 2.7, width: 1.5, yaw: 0.3 },
 ];
 
