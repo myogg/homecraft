@@ -651,7 +651,7 @@ export function furnish({ layer }) {
         c.fillText(['阿企 98,200', '网友 76,540', '小鱼 61,330'][i], rx + 28, y + 12);
       }
       c.fillStyle = '#123a8a'; c.fillRect(rx, 172, rw, 74);               // 玩家卡片
-      c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.fillText('玩家：姜小小', rx + 8, 190);
+      c.fillStyle = '#fff'; c.font = '12px sans-serif'; c.fillText('玩家：姜一一', rx + 8, 190);
       c.fillStyle = '#9fd0ff'; c.font = '11px sans-serif'; c.fillText('连击 x4 · 剩余 32 对', rx + 8, 210);
       c.fillStyle = '#f2c14e'; c.fillRect(rx + 8, 220, rw - 16, 12);
       c.fillStyle = '#d8322a'; c.fillRect(rx + 8, 220, (rw - 16) * 0.62, 12);
@@ -1097,7 +1097,7 @@ export function furnish({ layer }) {
     plateCtx.strokeStyle = '#9a7649'; plateCtx.lineWidth = 7; plateCtx.strokeRect(11, 11, plateW - 22, plateH - 22);
     plateCtx.textAlign = 'center';
     plateCtx.fillStyle = '#f4ead6'; plateCtx.font = '600 64px sans-serif';
-    plateCtx.fillText('姜小小的家', plateW / 2, 82);
+    plateCtx.fillText('姜一一的家', plateW / 2, 82);
     plateCtx.fillStyle = '#c8b499'; plateCtx.font = '30px sans-serif';
     plateCtx.fillText(total == null ? '欢迎回家' : `第 ${total} 位访客 · 今天 ${today} 人`, plateW / 2, 132);
     plateTex.needsUpdate = true;

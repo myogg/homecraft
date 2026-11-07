@@ -1,5 +1,5 @@
 export default {
-  name: '姜小小的家',
+  name: '姜一一的家',
   // 64×64 PNG, 4px arms, ≤ 18000 bytes. docs/avatar.md
   skin: 'assets/skin-template.png',
   languages: ['zh', 'en'],
